@@ -22,7 +22,7 @@ def generate_table() -> Table:
     for task in tasks.json():
         state = task["state"]
         if state == "transcribing":
-            state += f" ({task['processed']/task['total']:%}%)"
+            state += f" ({task['processed'] / task['total']:%}%)"
         table.add_row(task["uuid"], task["filename"], state)
     return table
 

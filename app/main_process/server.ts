@@ -28,7 +28,7 @@ function findServer() {
 function getServerProcess() {
   if (process.env.NODE_ENV === 'development' || isRunningInTest()) {
     console.log(process.cwd() + '/../server');
-    return spawn('poetry', ['run', 'python', 'run.py'], {
+    return spawn('uv', ['run', 'python', 'run.py'], {
       stdio: 'pipe',
       cwd: process.cwd() + '/../server',
       env: { ...process.env },

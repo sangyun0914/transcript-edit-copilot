@@ -127,9 +127,7 @@ class Models:
             task.total = int(response.headers.get("content-length"))
             task.state = DownloadModelState.DOWNLOADING
 
-            for data in response.iter_content(
-                chunk_size=max(int(task.total / 1000), 1024 * 1024)
-            ):
+            for data in response.iter_content(chunk_size=max(int(task.total / 1000), 1024 * 1024)):
                 task.add_progress(len(data))
 
                 f.write(data)

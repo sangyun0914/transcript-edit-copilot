@@ -19,31 +19,25 @@ You need to install the server dependencies even if you dont want hack on the py
 The server-component of audapolis is written in `python3` so you need to have that [installed](https://wiki.python.org/moin/BeginnersGuide/Download).
 It depends on `numpy` which does not provide official 32-bit python-3.10 wheels for windows. Try to avoid that combination.
 
-
-We use [poetry](https://python-poetry.org/) for dependency management.
-Either install poetry using your system package manager or by running:
-
-
-```sh
-pip install poetry
-```
+We use [uv](https://docs.astral.sh/uv/) for dependency management.
+Install uv by following the [official instructions](https://docs.astral.sh/uv/getting-started/installation/).
 
 After that you can install the required dependencies by running
 
 ```sh
-poetry install
+uv sync
 ```
 
 
 Normally the server should be automatically started by the app.
 If you want to start the server on its own anyway for a laugh, run the following:
 ```sh
-poetry run uvicorn app.main:app --reload
+uv run uvicorn app.main:app --reload
 ```
 
 ## Code checks & tests
 
-We use black, isort and flake8 for code formatting.
+We use [ruff](https://docs.astral.sh/ruff/) for code linting and formatting.
 You can either run them manually or use the [pre-commit](https://pre-commit.com)-hook.
 To do that install `pre-commit` using you system package manager or by running
 

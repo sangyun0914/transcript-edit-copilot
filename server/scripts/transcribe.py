@@ -73,9 +73,7 @@ def convertTranscriptionResultToV3Content(content, source, language):
 def save_result(file, output_file, source_hash, content, language, diarize):
     document = {
         "sources": [{"fileName": file.name}],
-        "content": convertTranscriptionResultToV3Content(
-            content, source_hash, language
-        ),
+        "content": convertTranscriptionResultToV3Content(content, source_hash, language),
         "metadata": {"display_speaker_names": diarize, "display_video": False},
         "version": 3,
     }
@@ -141,6 +139,4 @@ if __name__ == "__main__":
     source_hash = sha256sum(args.file)
 
     output_file = args.file.with_suffix(".audapolis")
-    save_result(
-        args.file, output_file, source_hash, content, args.language, args.diarize
-    )
+    save_result(args.file, output_file, source_hash, content, args.language, args.diarize)
