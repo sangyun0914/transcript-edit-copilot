@@ -74,17 +74,31 @@ function startServer() {
   if (!serverProcess) {
     return;
   }
+  let stdoutBuffer = '';
   serverProcess.stdout.on('data', (data: Buffer) => {
     logLine && logLine(LogSource.ServerProcess, LogLevel.Log, data);
-    try {
-      const parsed_data: ServerStartingMessage | ServerStartedMessage = JSON.parse(data.toString());
-      if (parsed_data.msg == 'server_starting') {
-        publishServerInfo({ state: 'starting', port: parsed_data.port });
-      } else if (parsed_data.msg == 'server_started') {
-        publishServerInfo({ state: 'running', token: parsed_data.token });
+
+    stdoutBuffer += data.toString();
+
+    const lines = stdoutBuffer.split('\n');
+    stdoutBuffer = lines.pop() ?? '';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        continue;
       }
-    } catch (e) {
-      console.log('error decoding stdout json', e);
+
+      try {
+        const parsed_data: ServerStartingMessage | ServerStartedMessage = JSON.parse(trimmed);
+        if (parsed_data.msg == 'server_starting') {
+          publishServerInfo({ state: 'starting', port: parsed_data.port });
+        } else if (parsed_data.msg == 'server_started') {
+          publishServerInfo({ state: 'running', token: parsed_data.token });
+        }
+      } catch (e) {
+        console.log('error decoding stdout json', e);
+      }
     }
   });
 
