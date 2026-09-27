@@ -1,6 +1,6 @@
 import { ServerConfig } from '../state/server';
 
-export function fetchFromServer(
+export async function fetchFromServer(
   server: ServerConfig,
   method: 'POST' | 'GET' | 'DELETE',
   route: string,
@@ -28,7 +28,20 @@ export function fetchFromServer(
     options.headers = { ...options.headers, 'content-type': 'application/json' };
   }
 
-  return fetch(`${server.hostname}:${server.port}/${route}/${getString}`, options);
+  const response = await fetch(`${server.hostname}:${server.port}/${route}/${getString}`, options);
+  if (!response.ok) {
+    const body = await response.text();
+    let message = `Server request failed (HTTP ${response.status}).`;
+    try {
+      const parsed = JSON.parse(body);
+      if (typeof parsed.detail === 'string') message = parsed.detail;
+    } catch {
+      // Older endpoints return plain text errors.
+      if (body) message = body;
+    }
+    throw new Error(message);
+  }
+  return response;
 }
 
 function encodeGetParams(params: Record<string, string | boolean | number>): string {

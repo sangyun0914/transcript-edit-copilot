@@ -12,7 +12,7 @@ The *content* list MAY NOT be empty.
 
 Semantically the content is a number of sections.
 At the moment, they can only be a "paragraph", meaning a list of `ParagraphItem`s and a speaker.
-Every section MUST end with a `DocumentItem` of type `paragragraph_break`.
+Every section MUST end with a `DocumentItem` of type `paragraph_end`.
 
 ### `DocumentItem`s
 
@@ -37,7 +37,7 @@ It has two additional properties:
 - language
 
 The speaker MUST be a string.
-It MAY NOT be the empty string, except to mark the default paragraph in an empty document.
+It MAY be the empty string when the speaker is unset or overlapping speech cannot be attributed to one speaker. The original speaker set is preserved in transcription provenance; display labels MUST NOT become invented speaker identities.
 It MAY NOT consist of only white space (as defined in [ECMAScript Section `TrimString`](https://tc39.es/ecma262/#sec-trimstring)).
 It MAY otherwise contain the entire range of unicode characters.
 
@@ -68,7 +68,7 @@ A `text` has the following additional properties:
 A media document with this id MUST be `sources` of this document.
 
 `sourceStart` marks the start of this snippet within the source in seconds.
-It MUST be greater than zero.
+It MUST be zero or greater.
 
 `length` contains the length of the snippet in the source file in seconds.
 It MUST be greater than zero.
@@ -83,7 +83,10 @@ It MAY contain the entire range of unicode characters.
 Applications MAY choose to ignore or not render certain white space characters, e.g. newlines.
 
 `conf` contains the confidence that the text matches the snippet.
-It MUST be a value in the inclusive range of 0 and 1, where 0 marks the lowest possible confidence and 1 marks the highest possible confidence.
+It MUST be null when confidence is unavailable, or a value in the inclusive range
+of 0 and 1, where 0 marks the lowest possible confidence and 1 marks the highest
+possible confidence. A provider log probability MUST NOT be treated as a
+calibrated confidence score. Existing numeric values remain supported.
 
 #### `non_text`
 
@@ -168,3 +171,32 @@ The empty string represents that no speaker is set for this paragraph.
 The content is a list of `ParagraphItem`s.
 `ParagraphItem`s are `DocumentItem` of types `text`, `non_text`, and `artificial_silence`.
 The content list MAY be empty, representing a paragraph with no content.
+
+### Optional transcription provenance
+
+This fork adds optional `metadata.transcriptions`, an array of immutable import
+records. Each record has `id`, `version: 1`, `provider`, `model`, `language_code`,
+`duration`, request options, `raw_response`, the source hash, `regions`, and optional
+`annotations`. Credentials are never stored here.
+
+A region stores `sourceStart`, `length`, original provider `word_indices`,
+`boundary_status` (`unverified`, `overlap`, or `needs_alignment`), and optional
+`speaker_ids`. These describe the original source, not current item UUIDs.
+Any edited item intersecting an uncertain source region inherits its warning.
+Copy/paste merges import records by ID; correction and undo retain the original
+source regions. Repeated paste does not duplicate the full provider response.
+
+An annotation stores `type` (`audio_event` or `unaligned_word`), `text`, `start`,
+`end`, `word_indices`, and nullable `speaker_id`. Annotations never create or
+extend editable audio intervals. Untimed words remain visible in transcription
+notes; text and subtitle exports include only timed content. Overlapping speech
+remains one coarse audio group, with its complete original speaker set retained.
+
+Old `metadata.transcription.items` UUID maps are migrated to source regions when
+opening a project. Migration preserves surviving references; it cannot recover
+warnings already lost by edits made in an older build. Replay the saved raw
+response to regenerate a clean import when needed.
+
+Records remain after editing or deletion and can include the full original
+transcript. Files without transcription metadata continue to load. Missing
+confidence, unknown gaps and unresolved annotations do not qualify automatic cuts.

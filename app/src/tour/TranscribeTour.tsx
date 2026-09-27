@@ -5,7 +5,7 @@ import { Text } from 'evergreen-ui';
 const steps = [
   {
     target: '#model',
-    body: <Text>Here you should select the language you just downloaded...</Text>,
+    body: <Text>Select the recording's language here...</Text>,
     showDependency: 'animationDone',
   },
   {

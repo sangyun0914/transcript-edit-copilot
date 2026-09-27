@@ -1,3 +1,4 @@
+import { mergeTranscriptions } from '../../core/transcription';
 import { assertSome, assertUnreachable } from '../../util';
 import {
   deserializeDocument,
@@ -245,7 +246,8 @@ export const cut = createAsyncActionWithReducer<EditorState>(
   }
 );
 
-export type ClipboardDocument = Pick<Document, 'sources' | 'content'>;
+export type ClipboardDocument = Pick<Document, 'sources' | 'content'> &
+  Partial<Pick<Document, 'metadata'>>;
 export const paste = createAsyncActionWithReducer<EditorState, void, ClipboardDocument>(
   'editor/paste',
   async (arg, { getState }) => {
@@ -258,7 +260,6 @@ export const paste = createAsyncActionWithReducer<EditorState, void, ClipboardDo
     const buffer = clipboard.readBuffer('x-audapolis/document-zip');
     // TODO: Don't extract sources from zip we already have in our file
     const deserialized = await deserializeDocument(buffer);
-    console.log('deserialized document from clipboard: ', deserialized);
     return deserialized;
   },
   {
@@ -268,6 +269,7 @@ export const paste = createAsyncActionWithReducer<EditorState, void, ClipboardDo
       }
       const mergedSources = { ...state.document.sources, ...payload.sources };
       checkPastedContent(payload, mergedSources);
+      mergeTranscriptions(state.document, payload);
       deleteSelection.reducer(state);
 
       if (

@@ -12,6 +12,7 @@ import { togglePlaying } from '../../state/editor/play';
 import { insertParagraphEnd } from '../../state/editor/edit';
 import { EditorMenuBar } from './MenuBar';
 import { FilterDialog } from './Filter';
+import { TranscriptionNotes } from './TranscriptionNotes';
 
 const MainContainer = styled(MainCenterColumn)`
   justify-content: start;
@@ -43,6 +44,7 @@ export function EditorPage(): JSX.Element {
       <FilterDialog />
 
       <MainContainer id={'scroll-container'}>
+        <TranscriptionNotes />
         <Document />
       </MainContainer>
     </AppContainer>

@@ -1,3 +1,4 @@
+import { alignmentWarning, transcriptionWarnings } from '../../core/transcription';
 import * as React from 'react';
 import { HTMLAttributes, HTMLProps, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -41,6 +42,9 @@ export function Paragraph({
   const displayConfidence = useSelector(
     (state: RootState) => state.editor.present?.displayConfidence || false
   );
+  const warnings = useSelector((state: RootState) =>
+    transcriptionWarnings(state.editor.present?.document.metadata.transcriptions)
+  );
 
   return (
     <Pane display={'flex'} flexDirection={'row'} marginBottom={majorScale(2)}>
@@ -56,9 +60,14 @@ export function Paragraph({
       <span key={data.uuid} id={`item-${data.uuid}`} />
       <Pane color={displaySpeakerNames ? color : theme.colors.default} transition={'color 0.5s'}>
         {data.content.map((item, i) => {
+          const warning = alignmentWarning(item, warnings);
           const commonProps = {
             key: item.uuid,
             id: `item-${item.uuid}`,
+            ...(warning && {
+              title: warning,
+              style: { textDecoration: 'underline dotted', textUnderlineOffset: '3px' },
+            }),
           };
           if (editingRange && editingRange.startIndex == item.absoluteIndex) {
             return <TranscriptCorrectionEntry {...commonProps} />;
@@ -91,7 +100,7 @@ function renderParagraphItem(
   preserve: boolean
 ): JSX.Element {
   if (item.type == 'text') {
-    if (displayConfidence) {
+    if (displayConfidence && item.conf !== null) {
       return (
         <span {...commonProps}>
           {' '}

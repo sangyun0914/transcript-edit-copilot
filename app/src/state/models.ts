@@ -10,6 +10,7 @@ import {
   getTask,
   DownloadingModelState,
   deleteTask,
+  getTranscriptionCapabilities,
 } from '../server_api/api';
 
 export interface Model {
@@ -34,6 +35,8 @@ export type DownloadingModel = Model & {
 };
 
 export interface ModelsState {
+  scribeConfigured: boolean;
+  localAsrAvailable: boolean;
   downloaded: Record<string, Model>;
   downloading: DownloadingModel[];
   all: Model[];
@@ -42,21 +45,35 @@ export interface ModelsState {
 }
 
 export const fetchModelState = createAsyncThunk<
-  { downloaded: Record<string, Model>; all: Model[] },
+  {
+    downloaded: Record<string, Model>;
+    all: Model[];
+    scribeConfigured: boolean;
+    localAsrAvailable: boolean;
+  },
   void,
   { state: RootState }
 >('models/fetchModelState', async (_, { getState }) => {
   const server = getServer(getState());
   assertSome(server);
-  const all = await getAvailableModels(server);
-  const downloaded = await getDownloadedModels(server);
+  const [all, downloaded, capabilities] = await Promise.all([
+    getAvailableModels(server),
+    getDownloadedModels(server),
+    getTranscriptionCapabilities(server),
+  ]);
 
   const flattenLanguages = (x: Record<string, Language>) =>
     Object.values(x).flatMap((x) => {
       return x.transcription_models;
     });
 
-  return { all: flattenLanguages(all), downloaded: downloaded, languages: all };
+  return {
+    all: flattenLanguages(all),
+    downloaded,
+    languages: all,
+    scribeConfigured: capabilities.scribe,
+    localAsrAvailable: capabilities.vosk,
+  };
 });
 
 export const downloadModel = createAsyncThunk<void, Model, { state: RootState }>(
@@ -110,6 +127,8 @@ export function getDefaultModel(lang: string, type: string): string | null {
 export const modelsSlice = createSlice({
   name: 'models',
   initialState: {
+    scribeConfigured: false,
+    localAsrAvailable: false,
     downloaded: {},
     downloading: [],
     all: [],

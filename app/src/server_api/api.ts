@@ -1,7 +1,7 @@
 import { fetchFromServer } from './index';
 import { ServerConfig } from '../state/server';
 import { Language, Model } from '../state/models';
-import { V1Paragraph, V1V2Silence, V1V2Word } from '../core/document';
+import { TranscriptionContent, TranscriptionMetadata } from '../core/transcription';
 
 export interface Task {
   uuid: string;
@@ -10,16 +10,22 @@ export interface Task {
 export enum TranscriptionState {
   QUEUED = 'queued',
   LOADING = 'loading',
+  LOADING_TRANSCRIPTION_MODEL = 'loading transcription model',
+  DIARIZING = 'diarizing',
   TRANSCRIBING = 'transcribing',
   POST_PROCESSING = 'post_processing',
   DONE = 'done',
+  FAILED = 'failed',
   CONVERTING = 'converting',
+  UPLOADING = 'uploading',
 }
 
 export interface TranscriptionTask extends Task {
   progress: number;
   state: TranscriptionState;
-  content?: V1Paragraph<Omit<V1V2Silence | V1V2Word, 'source'>>[];
+  content?: TranscriptionContent;
+  transcription?: TranscriptionMetadata | null;
+  error?: string | null;
 }
 
 export enum DownloadingModelState {
@@ -38,21 +44,29 @@ export interface DownloadModelTask extends Task {
 
 export function startTranscription(
   server: ServerConfig,
-  transcription_model: string,
+  provider: 'scribe' | 'vosk',
+  transcription_model: string | undefined,
+  language_code: string | undefined,
   diarize: boolean,
   diarize_max_speakers: number | null,
   file: File,
   fileName: string
 ): Promise<TranscriptionTask> {
-  const opts: Record<string, string | boolean | number> = { transcription_model, diarize };
+  const opts: Record<string, string | boolean | number> = { provider, diarize };
+  if (transcription_model) opts.transcription_model = transcription_model;
+  if (language_code) opts.language_code = language_code;
   if (diarize_max_speakers !== null) {
     opts['diarize_max_speakers'] = diarize_max_speakers;
   }
   return fetchFromServer(server, 'POST', 'tasks/start_transcription', opts, {
     form: { file, fileName },
-  })
-    .then((x) => x.json())
-    .catch((e) => console.error(e));
+  }).then((x) => x.json());
+}
+
+export function getTranscriptionCapabilities(
+  server: ServerConfig
+): Promise<{ scribe: boolean; vosk: boolean }> {
+  return fetchFromServer(server, 'GET', 'transcription/capabilities').then((x) => x.json());
 }
 
 export function downloadModel(server: ServerConfig, model_id: string): Promise<DownloadModelTask> {

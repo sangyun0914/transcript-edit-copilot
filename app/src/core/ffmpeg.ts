@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { execFile } from 'child_process';
 import path from 'path';
 import { Source, RenderItem } from './document';
 import Fessonia from '@tedconf/fessonia';
@@ -230,23 +231,20 @@ export async function exportAudio(
 }
 
 function getFileDuration(filePath: string): Promise<number> {
-  const elem = document.createElement('video');
-  const fileContents = fs.readFileSync(filePath);
-  const objectUrl = URL.createObjectURL(new Blob([fileContents]));
-
-  const promise = new Promise<number>((resolve, reject) => {
-    elem.onloadeddata = () => {
-      resolve(elem.duration * 1000);
-      elem.remove();
-      URL.revokeObjectURL(objectUrl);
-    };
-    elem.onerror = (err) => {
-      console.error('failed to get file duration', err);
-      reject(Error('failed to file duration'));
-    };
+  return new Promise((resolve, reject) => {
+    execFile(
+      ffmpegPath,
+      ['-hide_banner', '-i', filePath, '-t', '0', '-f', 'null', '-'],
+      (error: Error | null, _stdout: string, stderr: string) => {
+        if (error) return reject(error);
+        const duration = /Duration: (\d+):(\d+):(\d+(?:\.\d+)?)/.exec(stderr);
+        if (!duration) return reject(new Error('Could not read the recording duration.'));
+        resolve(
+          (Number(duration[1]) * 3600 + Number(duration[2]) * 60 + Number(duration[3])) * 1000
+        );
+      }
+    );
   });
-  elem.setAttribute('src', objectUrl);
-  return promise;
 }
 
 export async function convertToWav(
@@ -259,23 +257,22 @@ export async function convertToWav(
 
   const tempdir: string = await getTempDir();
   const outputFile = path.join(tempdir, 'output.wav');
-  cmd.addOutput(new FFmpegOutput(outputFile));
-
-  const duration = await getFileDuration(input_path);
-
-  cmd.on('update', (data) => {
-    progressCallback(data.out_time_ms / duration);
-  });
-  const promise = new Promise((resolve, reject) => {
-    cmd.on('success', resolve);
-    cmd.on('error', reject);
-  });
-  cmd.spawn(true);
-  console.log('ffmpeg result', await promise);
-
-  const fileData = fs.readFileSync(outputFile);
-  fs.rmdirSync(tempdir, { recursive: true });
-  return fileData;
+  cmd.addOutput(
+    new FFmpegOutput(outputFile, {
+      map: '0:a:0',
+      ac: '1',
+      ar: '16000',
+      'c:a': 'pcm_s16le',
+    })
+  );
+  try {
+    const duration = await getFileDuration(input_path);
+    cmd.on('update', (data) => progressCallback(Math.min(1, data.out_time_ms / duration)));
+    await cmd.execute();
+    return fs.readFileSync(outputFile);
+  } finally {
+    fs.rmSync(tempdir, { recursive: true, force: true });
+  }
 }
 
 export async function copyToMp4(input_path: string): Promise<Buffer> {
@@ -285,11 +282,12 @@ export async function copyToMp4(input_path: string): Promise<Buffer> {
   const cmd = new FFmpegCommand({ y: undefined });
   cmd.addInput(new FFmpegInput(input_path));
   cmd.addOutput(new FFmpegOutput(outputFile, { c: 'copy' }));
-  await cmd.execute();
-
-  const fileData = fs.readFileSync(outputFile);
-  fs.rmdirSync(tempdir, { recursive: true });
-  return fileData;
+  try {
+    await cmd.execute();
+    return fs.readFileSync(outputFile);
+  } finally {
+    fs.rmSync(tempdir, { recursive: true, force: true });
+  }
 }
 
 function getFfmpegComandLine(cmd: Fessonia.FFmpegCommand) {

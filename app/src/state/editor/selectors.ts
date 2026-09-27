@@ -192,7 +192,14 @@ export function selectionDocument(state: EditorState): Document {
   return {
     content: documentSlice,
     sources: filteredSources,
-    metadata: state.document.metadata,
+    metadata: {
+      ...state.document.metadata,
+      ...(state.document.metadata.transcriptions && {
+        transcriptions: state.document.metadata.transcriptions.filter((record) =>
+          neededSources.has(record.source)
+        ),
+      }),
+    },
   };
 }
 

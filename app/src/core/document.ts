@@ -3,6 +3,11 @@ import { readFileSync, createWriteStream } from 'fs';
 import { basename } from 'path';
 import { memoizedParagraphItems } from '../state/editor/selectors';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  migrateTranscription,
+  TranscriptionProvenance,
+  LegacyTranscriptionProvenance,
+} from './transcription';
 
 /**
  * The file versions of audapolis are not the same as the actual release versions of the app.
@@ -40,7 +45,7 @@ export interface V1V2Word {
   sourceStart: number;
   length: number;
 
-  conf: number;
+  conf: number | null;
 }
 export interface V1V2Silence {
   type: 'silence';
@@ -84,6 +89,8 @@ interface V3DocumentJson {
 interface V3DocumentMetadata {
   display_video: boolean;
   display_speaker_names: boolean;
+  transcription?: LegacyTranscriptionProvenance;
+  transcriptions?: TranscriptionProvenance[];
 }
 
 type V3DocumentItemWithoutUuid =
@@ -114,7 +121,7 @@ export interface V3TextItem {
   sourceStart: number;
   length: number;
   text: string;
-  conf: number;
+  conf: number | null;
 }
 
 export interface V3NonTextItem {
@@ -223,6 +230,8 @@ export async function deserializeDocument(
       `Cant open document with version ${parsed.version} with current audapolis version.\nMaybe try updating audapolis?`
     );
   }
+
+  migrateTranscription(partialDocument);
 
   // TODO: Only load needed?
   const loadSources = async (): Promise<Record<string, Source>> => {

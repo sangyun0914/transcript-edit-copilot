@@ -1,17 +1,10 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { openLanding, openModelManager, openTranscribe, openTranscribing } from './nav';
+import { openLanding, openTranscribe, openTranscribing } from './nav';
 import { RootState } from './index';
 import { readFileSync } from 'fs';
 import { basename, extname } from 'path';
 import { sleep } from '../util';
-import {
-  convertV1toV3,
-  V1Paragraph,
-  V1ParagraphItem,
-  V1V2Silence,
-  V1V2Word,
-  V3DocumentItem,
-} from '../core/document';
+import { importTranscript } from '../core/transcription';
 import { fetchModelState, Model } from './models';
 import { getServer } from './server';
 import { createHash } from 'crypto';
@@ -21,7 +14,7 @@ import {
   getTask,
   startTranscription as startTranscriptionApiCall,
   TranscriptionState,
-  TranscriptionTask,
+  getTranscriptionCapabilities,
 } from '../server_api/api';
 import { openFile } from '../../ipc/ipc_renderer';
 import { openDocumentFromMemory } from './editor/io';
@@ -30,17 +23,13 @@ export interface TranscribeState {
   file?: string;
   progress: number;
   state?: TranscriptionState;
+  error?: string;
 }
 
 export const transcribeFile = createAsyncThunk<string | undefined, void, { state: RootState }>(
   'transcribe/transcribeFile',
-  async (_, { dispatch, getState }) => {
+  async (_, { dispatch }) => {
     await dispatch(fetchModelState()).unwrap();
-    if (Object.keys(getState().models.downloaded).length == 0) {
-      await dispatch(openModelManager()).unwrap();
-      alert('Please download a transcription model first!');
-      return;
-    }
     const file = await openFile({
       title: 'Import media file...',
       properties: ['openFile', 'promptToCreate', 'createDirectory'],
@@ -61,19 +50,24 @@ export const transcribeFile = createAsyncThunk<string | undefined, void, { state
 );
 
 function workingExtensions(extension: string): boolean {
-  return ['.wav', '.mp4'].indexOf(extension) != -1;
+  return ['.wav', '.mp4'].includes(extension.toLowerCase());
 }
 export const startTranscription = createAsyncThunk<
   void,
   {
-    transcription_model: Model;
+    provider: 'scribe' | 'vosk';
+    transcription_model?: Model;
+    language_code?: string;
     diarize: boolean;
     diarize_max_speakers: number | null;
   },
   { state: RootState }
 >(
   'transcribing/upload',
-  async ({ transcription_model, diarize, diarize_max_speakers }, { dispatch, getState }) => {
+  async (
+    { provider, transcription_model, language_code, diarize, diarize_max_speakers },
+    { dispatch, getState }
+  ) => {
     const state = getState();
     const server = getServer(state);
     const path = state?.transcribe?.file;
@@ -81,6 +75,15 @@ export const startTranscription = createAsyncThunk<
       throw Error('Failed to start transcription: No file for transcription given.');
     }
     dispatch(openTranscribing());
+
+    const capabilities = await getTranscriptionCapabilities(server);
+    if (!capabilities[provider]) {
+      throw new Error(
+        provider === 'vosk'
+          ? 'Local ASR is unavailable. In server/, run: uv sync --extra local-asr'
+          : 'ElevenLabs is not configured on this server.'
+      );
+    }
 
     dispatch(setProgress(0));
     dispatch(setState(TranscriptionState.CONVERTING));
@@ -103,9 +106,13 @@ export const startTranscription = createAsyncThunk<
     }
 
     const file = new File([wavFileContent], 'input.wav');
+    dispatch(setProgress(0));
+    dispatch(setState(TranscriptionState.UPLOADING));
     const task = await startTranscriptionApiCall(
       server,
-      transcription_model.model_id,
+      provider,
+      transcription_model?.model_id,
+      language_code,
       diarize,
       diarize_max_speakers,
       file,
@@ -114,95 +121,67 @@ export const startTranscription = createAsyncThunk<
 
     dispatch(setState(task.state));
 
-    while (true) {
-      const { content, state, progress } = await getTask(server, task);
+    try {
+      while (true) {
+        const { content, state, progress, transcription, error } = await getTask(server, task);
 
-      dispatch(setProgress(progress));
-      dispatch(setState(state));
+        dispatch(setProgress(progress));
+        dispatch(setState(state));
 
-      if (state == 'done') {
-        const fileContent = readFileSync(path);
-        const fileContents = fileContent.buffer;
-
-        let storedFileContent = fileContent;
-        if (!workingExtensions(extname(path))) {
-          try {
-            storedFileContent = await copyToMp4(path);
-          } catch (err) {
-            alert(
-              'Error: Your file is not in a format that is known to work (.wav or .mp4) and could ' +
-                'not be copied to an mp4.\n\nContinue at your own risk.'
-            );
-          }
+        if (state === TranscriptionState.FAILED) {
+          throw new Error(error || 'Transcription failed.');
         }
+        if (state == 'done') {
+          if (!content) throw new Error('Transcription completed without content.');
+          const fileContent = readFileSync(path);
 
-        const objectUrl = URL.createObjectURL(new Blob([fileContents]));
-        const hash = createHash('sha256');
-        hash.update(fileContent.slice(0));
-        const hashValue = hash.digest('hex');
-        const sources = {
-          [hashValue]: {
-            fileName,
-            fileContents: storedFileContent,
-            objectUrl,
-          },
-        };
+          let storedFileContent = fileContent;
+          if (!workingExtensions(extname(path))) {
+            try {
+              storedFileContent = await copyToMp4(path);
+            } catch (err) {
+              alert(
+                'Error: Your file is not in a format that is known to work (.wav or .mp4) and could ' +
+                  'not be copied to an mp4.\n\nContinue at your own risk.'
+              );
+            }
+          }
 
-        const flatContent: V3DocumentItem[] = convertTranscriptionResultToV3Content(
-          content,
-          hashValue,
-          transcription_model.lang
-        );
+          const objectUrl = URL.createObjectURL(new Blob([storedFileContent]));
+          const hash = createHash('sha256');
+          hash.update(storedFileContent);
+          const hashValue = hash.digest('hex');
+          const sources = {
+            [hashValue]: {
+              fileName,
+              fileContents: storedFileContent,
+              objectUrl,
+            },
+          };
 
-        dispatch(
-          openDocumentFromMemory({
-            sources: sources,
-            content: flatContent,
-            metadata: { display_speaker_names: diarize, display_video: false },
-          })
-        );
-        // Once the task is finished, try to delete it but ignore any errors
-        await deleteTask(server, task.uuid);
-        break;
+          const imported = importTranscript(
+            content,
+            hashValue,
+            transcription?.language_code || language_code || transcription_model?.lang || '',
+            transcription
+          );
+
+          await dispatch(
+            openDocumentFromMemory({
+              sources: sources,
+              content: imported.content,
+              metadata: { ...imported.metadata, display_speaker_names: diarize },
+            })
+          ).unwrap();
+          break;
+        }
+        await sleep(0.5);
       }
-      await sleep(0.1);
+    } finally {
+      await deleteTask(server, task.uuid).catch(() => undefined);
     }
   }
 );
-
-function convertTranscriptionResultToV3Content(
-  content: TranscriptionTask['content'],
-  source: string,
-  language: string
-): V3DocumentItem[] {
-  if (content === undefined) {
-    throw Error('Transcription failed: State is done, but no content was produced');
-  }
-
-  const v1Content: V1Paragraph[] = content.map((para): V1Paragraph => {
-    return {
-      ...para,
-      content: para.content.map((word): V1ParagraphItem => {
-        const isSilence = (x: Omit<V1ParagraphItem, 'source'>): x is Omit<V1V2Silence, 'source'> =>
-          x.type == 'silence';
-        const isWord = (x: Omit<V1ParagraphItem, 'source'>): x is Omit<V1V2Word, 'source'> =>
-          x.type == 'word';
-
-        if (isSilence(word) || isWord(word)) {
-          return {
-            ...word,
-            source: source,
-          };
-        } else {
-          throw new Error(
-            "this is not possible - but the typescript compiler doesn't know that yet"
-          );
-        }
-      }),
-    };
-  });
-  return convertV1toV3(v1Content).content.map((x) => ({ ...x, language }));
-}
 
 export const importSlice = createSlice({
   name: 'nav',
@@ -216,6 +195,13 @@ export const importSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+    builder.addCase(startTranscription.pending, (state) => {
+      state.error = undefined;
+    });
+    builder.addCase(startTranscription.rejected, (state, action) => {
+      state.state = TranscriptionState.FAILED;
+      state.error = action.error.message || 'Transcription failed.';
+    });
     builder.addCase(transcribeFile.fulfilled, (state, action) => {
       state.file = action.payload;
     });
