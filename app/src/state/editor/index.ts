@@ -11,6 +11,7 @@ import {
   renameSpeaker,
   deleteSomething,
   filterContent,
+  trimSelectedGap,
 } from './edit';
 
 import { finishTranscriptCorrection } from './transcript_correction';
@@ -68,6 +69,7 @@ const stateSlice: Reducer<StateWithHistory<EditorState | null>> = undoable(edito
     paste.fulfilled.type,
     finishTranscriptCorrection.type,
     filterContent.type,
+    trimSelectedGap.type,
   ]),
   ignoreInitialState: false,
   syncFilter: true,

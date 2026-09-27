@@ -29,6 +29,7 @@ import {
   selectionDocument,
 } from './selectors';
 import { v4 as uuidv4 } from 'uuid';
+import { GapItem, isGap, sameGap } from '../../core/gaps';
 
 function getInsertPos(state: EditorState): number {
   switch (state.cursor.current) {
@@ -117,6 +118,58 @@ export const setText = createActionWithReducer<
     throw new Error('setText called on item that is not a text');
   }
   item.text = payload.text;
+});
+
+export const trimSelectedGap = createActionWithReducer<
+  EditorState,
+  { uuid: string; keepMs: number; expectedLength?: number }
+>('editor/trimSelectedGap', (state, { uuid, keepMs, expectedLength }) => {
+  const selection = state.selection;
+  if (!selection || state.playing) return;
+  const selected = state.document.content.slice(
+    selection.startIndex,
+    selection.startIndex + selection.length
+  );
+  if (
+    selected.length !== selection.length ||
+    !selected.length ||
+    selected[0].uuid !== uuid ||
+    !selected.every(isGap) ||
+    !selected.every((item) => sameGap(selected[0], item)) ||
+    !Number.isSafeInteger(keepMs) ||
+    keepMs <= 0
+  )
+    return;
+  const length = selected.reduce((total, item) => total + item.length, 0);
+  if (keepMs / 1000 >= length || (expectedLength !== undefined && expectedLength !== length))
+    return;
+
+  // A displayed pause can contain both source edges from an earlier center cut.
+  const half = keepMs / 2000;
+  const retained: GapItem[] = [];
+  const usedIds = new Set<string>();
+  for (const fromRight of [false, true]) {
+    let remaining = half;
+    const edge: GapItem[] = [];
+    for (const gap of fromRight ? [...selected].reverse() : selected) {
+      if (remaining <= 0) break;
+      const retainedLength = Math.min(gap.length, remaining);
+      edge.push({
+        ...gap,
+        uuid: usedIds.has(gap.uuid) ? uuidv4() : gap.uuid,
+        length: retainedLength,
+        ...(gap.type === 'non_text' && {
+          sourceStart: fromRight ? gap.sourceStart + gap.length - retainedLength : gap.sourceStart,
+        }),
+      });
+      usedIds.add(gap.uuid);
+      remaining -= retainedLength;
+    }
+    retained.push(...(fromRight ? edge.reverse() : edge));
+  }
+  state.document.content.splice(selection.startIndex, selection.length, ...retained);
+  state.cursor = { ...state.cursor, current: 'user', userIndex: selection.startIndex };
+  state.selection = null;
 });
 
 export const reassignParagraph = createActionWithReducer<

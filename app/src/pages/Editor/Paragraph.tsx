@@ -21,6 +21,8 @@ import {
 import { assertSome } from '../../util';
 import { MenuItem, showContextMenu } from '../../components/Menu';
 import styled from 'styled-components';
+import { GapItem, isGap, sameGap } from '../../core/gaps';
+import { Gap } from './Gap';
 
 export function Paragraph({
   data,
@@ -46,6 +48,54 @@ export function Paragraph({
     transcriptionWarnings(state.editor.present?.document.metadata.transcriptions)
   );
 
+  function renderItems(): JSX.Element[] {
+    const rendered: JSX.Element[] = [];
+    for (let i = 0; i < data.content.length; i++) {
+      const item = data.content[i];
+      const warning = alignmentWarning(item, warnings);
+      const commonProps = {
+        key: item.uuid,
+        id: `item-${item.uuid}`,
+        ...(warning && {
+          title: warning,
+          style: { textDecoration: 'underline dotted', textUnderlineOffset: '3px' },
+        }),
+      };
+      if (editingRange && editingRange.startIndex === item.absoluteIndex) {
+        rendered.push(<TranscriptCorrectionEntry {...commonProps} />);
+      } else if (
+        editingRange &&
+        editingRange.startIndex <= item.absoluteIndex &&
+        editingRange.startIndex + editingRange.length > item.absoluteIndex
+      ) {
+        continue;
+      } else if (isGap(item)) {
+        const start = i;
+        while (
+          i + 1 < data.content.length &&
+          sameGap(item, data.content[i + 1]) &&
+          data.content[i + 1].absoluteIndex !== editingRange?.startIndex
+        ) {
+          i++;
+        }
+        const gaps = data.content.slice(start, i + 1) as (GapItem & TimedItemExtension)[];
+        rendered.push(
+          <Gap
+            key={item.uuid}
+            items={gaps}
+            warning={gaps
+              .map((gap) => alignmentWarning(gap, warnings))
+              .filter(Boolean)
+              .join(' ')}
+          />
+        );
+      } else {
+        rendered.push(renderParagraphItem(item, displayConfidence, commonProps));
+      }
+    }
+    return rendered;
+  }
+
   return (
     <Pane display={'flex'} flexDirection={'row'} marginBottom={majorScale(2)}>
       <Speaker
@@ -59,29 +109,7 @@ export function Paragraph({
       />
       <span key={data.uuid} id={`item-${data.uuid}`} />
       <Pane color={displaySpeakerNames ? color : theme.colors.default} transition={'color 0.5s'}>
-        {data.content.map((item, i) => {
-          const warning = alignmentWarning(item, warnings);
-          const commonProps = {
-            key: item.uuid,
-            id: `item-${item.uuid}`,
-            ...(warning && {
-              title: warning,
-              style: { textDecoration: 'underline dotted', textUnderlineOffset: '3px' },
-            }),
-          };
-          if (editingRange && editingRange.startIndex == item.absoluteIndex) {
-            return <TranscriptCorrectionEntry {...commonProps} />;
-          } else if (
-            editingRange &&
-            editingRange.startIndex <= item.absoluteIndex &&
-            editingRange.startIndex + editingRange.length > item.absoluteIndex
-          ) {
-            return; // we are handling the rendering in the first element
-          } else {
-            const preserve = i == 0 || i == data.content.length - 1;
-            return renderParagraphItem(item, displayConfidence, commonProps, preserve);
-          }
-        })}
+        {renderItems()}
         <ParagraphSign
           key={data.content.length}
           id={`item-${paraBreakUuid}`}
@@ -96,8 +124,7 @@ export function Paragraph({
 function renderParagraphItem(
   item: V3TimedParagraphItem,
   displayConfidence: boolean,
-  commonProps: HTMLProps<HTMLSpanElement>,
-  preserve: boolean
+  commonProps: HTMLProps<HTMLSpanElement>
 ): JSX.Element {
   if (item.type == 'text') {
     if (displayConfidence && item.conf !== null) {
@@ -115,25 +142,6 @@ function renderParagraphItem(
       );
     } else {
       return <span {...commonProps}>{' ' + item.text}</span>;
-    }
-  } else if (item.type == 'non_text' || item.type == 'artificial_silence') {
-    if (item.length > 0.4) {
-      return (
-        <span style={{ fontFamily: 'quarter_rest' }} {...commonProps}>
-          {' _'}
-        </span>
-      );
-    } else {
-      return (
-        <span
-          style={{
-            ...(preserve && { whiteSpace: 'pre' }),
-          }}
-          {...commonProps}
-        >
-          {' '}
-        </span>
-      );
     }
   } else {
     throw Error(`unknown paragraph-item '${item}'`);
