@@ -1,0 +1,338 @@
+{
+  "version": "passive-models-v1",
+  "verified_at": "2026-09-26",
+  "scope": "Five planned checkpoints for a controlled greedy product-budget screen on frozen exposed dev. Weight readiness is not a model quality ranking or evidence of passive runtime compatibility.",
+  "runtime": {
+    "repository": "ggml-org/llama.cpp",
+    "tag": "b10816",
+    "revision": "427291b5b34cd914a31b3fd3b61a68f6184f4b9f",
+    "revision_source": "https://github.com/ggml-org/llama.cpp/commit/427291b5b34cd914a31b3fd3b61a68f6184f4b9f",
+    "server": "artifacts/nep-probe/llama-b10816/llama-server",
+    "sha256": "d707b6db4c1397a7383176fba12d339e5b33c7513669d74c8fbc2a76f6979a72",
+    "version_output": "version: 0.4.0-dev (build 10816, commit 427291b5b)\nbuilt with AppleClang 21.0.0.21000101 for Darwin arm64",
+    "archive_path": "artifacts/nep-probe/llama-b10816-bin-macos-arm64.tar.gz",
+    "archive_sha256": "726ca8e7680203280b72029f92380aaf482e6a48ebe4a73fbe934ccc0bcf2de9",
+    "files_sha256": {
+      "artifacts/nep-probe/llama-b10816/libggml-base.0.23.0.dylib": "57245f1638d5ff0a8b4e7e734cb102de021216a60397aa03bb2ae5cba4fc4144",
+      "artifacts/nep-probe/llama-b10816/libggml-base.0.dylib": "57245f1638d5ff0a8b4e7e734cb102de021216a60397aa03bb2ae5cba4fc4144",
+      "artifacts/nep-probe/llama-b10816/libggml-blas.0.23.0.dylib": "414856968dcddae3a67e0f9c6dc012e5c4db13320c4d7ea5924dc1ad192dcfd6",
+      "artifacts/nep-probe/llama-b10816/libggml-blas.0.dylib": "414856968dcddae3a67e0f9c6dc012e5c4db13320c4d7ea5924dc1ad192dcfd6",
+      "artifacts/nep-probe/llama-b10816/libggml-cpu.0.23.0.dylib": "e63a7b4f8eaa5bbd8e93e524d1a828de22a42bead57ae79cfab46e2339571fb2",
+      "artifacts/nep-probe/llama-b10816/libggml-cpu.0.dylib": "e63a7b4f8eaa5bbd8e93e524d1a828de22a42bead57ae79cfab46e2339571fb2",
+      "artifacts/nep-probe/llama-b10816/libggml-metal.0.23.0.dylib": "f50461ad6868e7ae03b96a5d381f2962c357948d27d142296aa4dc33e854dee2",
+      "artifacts/nep-probe/llama-b10816/libggml-metal.0.dylib": "f50461ad6868e7ae03b96a5d381f2962c357948d27d142296aa4dc33e854dee2",
+      "artifacts/nep-probe/llama-b10816/libggml-rpc.0.23.0.dylib": "d998f743ae44021c8990a95765585d813bf161fcc8c7a527ed9f746e0f76d144",
+      "artifacts/nep-probe/llama-b10816/libggml-rpc.0.dylib": "d998f743ae44021c8990a95765585d813bf161fcc8c7a527ed9f746e0f76d144",
+      "artifacts/nep-probe/llama-b10816/libggml.0.23.0.dylib": "98fa46f0bcd8c75a335f733c38cb79f911bc39412ba15ef52fee3ac051c14069",
+      "artifacts/nep-probe/llama-b10816/libggml.0.dylib": "98fa46f0bcd8c75a335f733c38cb79f911bc39412ba15ef52fee3ac051c14069",
+      "artifacts/nep-probe/llama-b10816/libllama-common.0.4.0.dylib": "66f71715717bc5dfaaead9e34060f73360e6b904fe443a8f048faadb63869ca3",
+      "artifacts/nep-probe/llama-b10816/libllama-common.0.dylib": "66f71715717bc5dfaaead9e34060f73360e6b904fe443a8f048faadb63869ca3",
+      "artifacts/nep-probe/llama-b10816/libllama-server-impl.dylib": "33ac5265ec2e44c9f0a8fa58d05914cd68d16612cf5c9ec4e1fcd192a0e535ee",
+      "artifacts/nep-probe/llama-b10816/libllama.0.4.0.dylib": "e0e3037eb353afe7b5814bc5348bbffcc5d3f0067aac806c1f8bf5e94026fe89",
+      "artifacts/nep-probe/llama-b10816/libllama.0.dylib": "e0e3037eb353afe7b5814bc5348bbffcc5d3f0067aac806c1f8bf5e94026fe89",
+      "artifacts/nep-probe/llama-b10816/libmtmd.0.4.0.dylib": "6e902b5676376c466dc4a1ed66a3b2c675589b47a5292581a3bc7cec895516fa",
+      "artifacts/nep-probe/llama-b10816/libmtmd.0.dylib": "6e902b5676376c466dc4a1ed66a3b2c675589b47a5292581a3bc7cec895516fa",
+      "artifacts/nep-probe/llama-b10816/llama-server": "d707b6db4c1397a7383176fba12d339e5b33c7513669d74c8fbc2a76f6979a72"
+    },
+    "symlink_targets": {
+      "artifacts/nep-probe/llama-b10816/libllama-common.0.dylib": "artifacts/nep-probe/llama-b10816/libllama-common.0.4.0.dylib",
+      "artifacts/nep-probe/llama-b10816/libmtmd.0.dylib": "artifacts/nep-probe/llama-b10816/libmtmd.0.4.0.dylib",
+      "artifacts/nep-probe/llama-b10816/libllama.0.dylib": "artifacts/nep-probe/llama-b10816/libllama.0.4.0.dylib",
+      "artifacts/nep-probe/llama-b10816/libggml.0.dylib": "artifacts/nep-probe/llama-b10816/libggml.0.23.0.dylib",
+      "artifacts/nep-probe/llama-b10816/libggml-cpu.0.dylib": "artifacts/nep-probe/llama-b10816/libggml-cpu.0.23.0.dylib",
+      "artifacts/nep-probe/llama-b10816/libggml-blas.0.dylib": "artifacts/nep-probe/llama-b10816/libggml-blas.0.23.0.dylib",
+      "artifacts/nep-probe/llama-b10816/libggml-metal.0.dylib": "artifacts/nep-probe/llama-b10816/libggml-metal.0.23.0.dylib",
+      "artifacts/nep-probe/llama-b10816/libggml-rpc.0.dylib": "artifacts/nep-probe/llama-b10816/libggml-rpc.0.23.0.dylib",
+      "artifacts/nep-probe/llama-b10816/libggml-base.0.dylib": "artifacts/nep-probe/llama-b10816/libggml-base.0.23.0.dylib"
+    },
+    "pinning_scope": "Server launcher, its ten non-system dynamic library dependencies and their resolved files; macOS system frameworks are identified by the run machine receipt.",
+    "template_policy": "Use each pinned native chat_template.jinja explicitly. Verify server-rendered prompt and token IDs against frozen prefix IDs before generation.",
+    "chat_template_kwargs": {
+      "enable_thinking": false
+    },
+    "context_tokens": 4096,
+    "input_tokens": 3584,
+    "parallel_slots": 1,
+    "gpu_layers": 99,
+    "passive_runtime_smoke_status": "not_run"
+  },
+  "tokenizers": {
+    "registry_path": "artifacts/datasets/nep-release-v1/comparison-tokenizers-v2/registry.json",
+    "registry_sha256": "c3c966f9a6cad65f031b448c74a4feafdaff714cb264a9d7678e6ee603135d00",
+    "verification": "All twenty pinned config/tokenizer/template files rehashed successfully; server tokenization parity remains required."
+  },
+  "sampling": {
+    "temperature": 0,
+    "seed": 42,
+    "top_k": 40,
+    "top_p": 0.95,
+    "min_p": 0.05,
+    "repeat_penalty": 1.0,
+    "presence_penalty": 0.0,
+    "frequency_penalty": 0.0,
+    "max_tokens": 512,
+    "reasoning": "off",
+    "reasoning_budget": 0
+  },
+  "sampling_scope": "Shared deterministic deployment constraint. This is not vendor-recommended sampling and must not alone determine intrinsic model ranking. Reasoning tokens count against output/time budgets.",
+  "diagnostic_policy": {
+    "status": "not_run",
+    "scope": "Vendor-recommended non-thinking settings below are for a separately preregistered bounded diagnostic dev subset and common seed set. Do not silently replace the product-budget condition or enlarge evidence/output budgets.",
+    "parameter_mapping": "Vendor repetition_penalty is named repeat_penalty in llama.cpp."
+  },
+  "candidates": [
+    {
+      "id": "qwen06",
+      "tokenizer_id": "qwen06",
+      "base_repository": "Qwen/Qwen3.5-2B",
+      "base_revision": "15852e8c16360a2fea060d615a32b45270f8a8fc",
+      "tokenizer_path": "artifacts/datasets/nep-release-v1/comparison-tokenizers-v2/qwen06",
+      "tokenizer_files_sha256": {
+        "tokenizer_config.json": "49e2b6e395f959f077f1e992b338919c0d4a9732fc6e613995e06557f843500c",
+        "config.json": "ed1c1723241f23f7f4e23430759cbd7dcfb4103cbdfe052bfe7626b57c2615b4",
+        "tokenizer.json": "5f9e4d4901a92b997e463c1f46055088b6cca5ca61a6522d1b9f64c4bb81cb42",
+        "chat_template.jinja": "273d8e0e683b885071fb17e08d71e5f2a5ddfb5309756181681de4f5a1822d80"
+      },
+      "template_path": "artifacts/datasets/nep-release-v1/comparison-tokenizers-v2/qwen06/chat_template.jinja",
+      "template_sha256": "273d8e0e683b885071fb17e08d71e5f2a5ddfb5309756181681de4f5a1822d80",
+      "model_path": null,
+      "model_sha256": null,
+      "model_bytes": null,
+      "runtime_status": "passive_template_tokenizer_and_generation_smoke_not_run",
+      "license": {
+        "identifier": "apache-2.0",
+        "source": "https://huggingface.co/Qwen/Qwen3.5-2B",
+        "local_license_file": null,
+        "status": "vendor_metadata_only_not_a_local_license_snapshot"
+      },
+      "vendor_diagnostic": {
+        "reviewed_at": "2026-09-26",
+        "source": "https://huggingface.co/Qwen/Qwen3.5-2B#best-practices",
+        "mode": "non-thinking",
+        "sampling": {
+          "temperature": 1.0,
+          "top_p": 1.0,
+          "top_k": 20,
+          "min_p": 0.0,
+          "presence_penalty": 2.0,
+          "repeat_penalty": 1.0
+        },
+        "scope": "Native base recommendation; not a performance claim for this adapter or quantization."
+      },
+      "status": "adapter_not_exported",
+      "quant_repository": null,
+      "quant_revision": null,
+      "blockers": [
+        "Saved PEFT adapter exists, but no local native base weights, merged model or GGUF export was found.",
+        "adapter_config.json has revision=null; use the original full base revision from protocol.json, not an assumed current revision.",
+        "Choose and verify a merge/export or adapter runtime path, then compare adapter and original base with the same runtime/quantization."
+      ],
+      "adapter_path": "artifacts/iterations/colab-l4-run-06/adapter",
+      "adapter_model_path": "artifacts/iterations/colab-l4-run-06/adapter/adapter_model.safetensors",
+      "adapter_model_sha256": "c0c170e76d5115f5bb91fd337ba51cd1343e4cacbf1e566f42015c362142bfb7",
+      "adapter_model_bytes": 43675104,
+      "adapter_files_sha256": {
+        "artifacts/iterations/colab-l4-run-06/adapter/README.md": "497fad952c464b14294c780b39216d0b1c9434ff0b73d641e1b260f4dc5852a3",
+        "artifacts/iterations/colab-l4-run-06/adapter/adapter_config.json": "49beb3ba7f4cb484db27499f8060be5c3570afb88a0e1213955e101821902b45",
+        "artifacts/iterations/colab-l4-run-06/adapter/adapter_model.safetensors": "c0c170e76d5115f5bb91fd337ba51cd1343e4cacbf1e566f42015c362142bfb7",
+        "artifacts/iterations/colab-l4-run-06/adapter/chat_template.jinja": "273d8e0e683b885071fb17e08d71e5f2a5ddfb5309756181681de4f5a1822d80",
+        "artifacts/iterations/colab-l4-run-06/adapter/tokenizer.json": "87a7830d63fcf43bf241c3c5242e96e62dd3fdc29224ca26fed8ea333db72de4",
+        "artifacts/iterations/colab-l4-run-06/adapter/tokenizer_config.json": "32b7fa63d6fad6842324161effb40b4e93c107008e5948c70358acdaf309dd72"
+      },
+      "base_revision_evidence": {
+        "path": "artifacts/iterations/colab-l4-run-06/protocol.json",
+        "sha256": "992794a48c41c883634bfa09b74f6890a74e667bc36f1c93a9a73a77bcedf79c"
+      },
+      "base_weights_status": "not_found_locally",
+      "paired_base_required": true,
+      "tokenizer_note": "Saved adapter tokenizer files have different serialization hashes from frozen native files. Chat template hashes match and one EN/KO synthetic prompt produced identical 38-token prefixes and EOS 248046; complete-case parity still required."
+    },
+    {
+      "id": "qwen35-4b",
+      "tokenizer_id": "qwen35-4b",
+      "base_repository": "Qwen/Qwen3.5-4B",
+      "base_revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+      "tokenizer_path": "artifacts/datasets/nep-release-v1/comparison-tokenizers-v2/qwen35-4b",
+      "tokenizer_files_sha256": {
+        "tokenizer_config.json": "316230d6a809701f4db5ea8f8fc862bc3a6f3229c937c174e674ff3ca0a64ac8",
+        "config.json": "ddc63e1c717afa86c865bb5e01313d89d72bb53b97ad4a8a03ba8510c0621670",
+        "tokenizer.json": "5f9e4d4901a92b997e463c1f46055088b6cca5ca61a6522d1b9f64c4bb81cb42",
+        "chat_template.jinja": "a4aee8afcf2e0711942cf848899be66016f8d14a889ff9ede07bca099c28f715"
+      },
+      "template_path": "artifacts/datasets/nep-release-v1/comparison-tokenizers-v2/qwen35-4b/chat_template.jinja",
+      "template_sha256": "a4aee8afcf2e0711942cf848899be66016f8d14a889ff9ede07bca099c28f715",
+      "model_path": null,
+      "model_sha256": null,
+      "model_bytes": null,
+      "runtime_status": "passive_template_tokenizer_and_generation_smoke_not_run",
+      "license": {
+        "identifier": "apache-2.0",
+        "source": "https://huggingface.co/Qwen/Qwen3.5-4B",
+        "local_license_file": null,
+        "status": "vendor_metadata_only_not_a_local_license_snapshot"
+      },
+      "vendor_diagnostic": {
+        "reviewed_at": "2026-09-26",
+        "source": "https://huggingface.co/Qwen/Qwen3.5-4B#best-practices",
+        "mode": "non-thinking",
+        "sampling": {
+          "temperature": 0.7,
+          "top_p": 0.8,
+          "top_k": 20,
+          "min_p": 0.0,
+          "presence_penalty": 1.5,
+          "repeat_penalty": 1.0
+        },
+        "scope": "Native base recommendation; not a performance claim for this adapter or quantization."
+      },
+      "status": "missing_weights",
+      "quant_repository": null,
+      "quant_revision": null,
+      "blockers": [
+        "No locally acquired and hashed model weights.",
+        "Quant repository, full revision, exact file and conversion lineage must be selected before download.",
+        "Model load and passive runtime smoke have not run."
+      ]
+    },
+    {
+      "id": "qwen35-9b",
+      "tokenizer_id": "qwen35-9b",
+      "base_repository": "Qwen/Qwen3.5-9B",
+      "base_revision": "c202236235762e1c871ad0ccb60c8ee5ba337b9a",
+      "tokenizer_path": "artifacts/datasets/nep-release-v1/comparison-tokenizers-v2/qwen35-9b",
+      "tokenizer_files_sha256": {
+        "tokenizer_config.json": "316230d6a809701f4db5ea8f8fc862bc3a6f3229c937c174e674ff3ca0a64ac8",
+        "config.json": "d0883072e01861ed0b2d47be3c16c36a8e81c224c7ffaa310c6558fb3f932b05",
+        "tokenizer.json": "5f9e4d4901a92b997e463c1f46055088b6cca5ca61a6522d1b9f64c4bb81cb42",
+        "chat_template.jinja": "a4aee8afcf2e0711942cf848899be66016f8d14a889ff9ede07bca099c28f715"
+      },
+      "template_path": "artifacts/datasets/nep-release-v1/comparison-tokenizers-v2/qwen35-9b/chat_template.jinja",
+      "template_sha256": "a4aee8afcf2e0711942cf848899be66016f8d14a889ff9ede07bca099c28f715",
+      "model_path": null,
+      "model_sha256": null,
+      "model_bytes": null,
+      "runtime_status": "passive_template_tokenizer_and_generation_smoke_not_run",
+      "license": {
+        "identifier": "apache-2.0",
+        "source": "https://huggingface.co/Qwen/Qwen3.5-9B",
+        "local_license_file": null,
+        "status": "vendor_metadata_only_not_a_local_license_snapshot"
+      },
+      "vendor_diagnostic": {
+        "reviewed_at": "2026-09-26",
+        "source": "https://huggingface.co/Qwen/Qwen3.5-9B#best-practices",
+        "mode": "non-thinking",
+        "sampling": {
+          "temperature": 0.7,
+          "top_p": 0.8,
+          "top_k": 20,
+          "min_p": 0.0,
+          "presence_penalty": 1.5,
+          "repeat_penalty": 1.0
+        },
+        "scope": "Native base recommendation; not a performance claim for this adapter or quantization."
+      },
+      "status": "missing_weights",
+      "quant_repository": null,
+      "quant_revision": null,
+      "blockers": [
+        "No locally acquired and hashed model weights.",
+        "Quant repository, full revision, exact file and conversion lineage must be selected before download.",
+        "Model load and passive runtime smoke have not run."
+      ]
+    },
+    {
+      "id": "gemma26",
+      "tokenizer_id": "gemma26",
+      "base_repository": "google/gemma-4-26B-A4B-it",
+      "base_revision": "4d7ae4984b7db7de8f8457170b3f1a419ee76d52",
+      "tokenizer_path": "artifacts/datasets/nep-release-v1/comparison-tokenizers-v2/gemma26",
+      "tokenizer_files_sha256": {
+        "tokenizer_config.json": "9f4fec4b1dc6ecddf8f4a92e9caea5971c0e67d81309f3f9066a2bee8c362633",
+        "config.json": "ed0c1eb3633de771906e9ba004a44cc5635bcc06ee2062077c3d2e88a50707d3",
+        "tokenizer.json": "cc8d3a0ce36466ccc1278bf987df5f71db1719b9ca6b4118264f45cb627bfe0f",
+        "chat_template.jinja": "ae53464bf3be25802b3a5b37def7fd89667067d7577049b3b2d74c4d8de4c6d4"
+      },
+      "template_path": "artifacts/datasets/nep-release-v1/comparison-tokenizers-v2/gemma26/chat_template.jinja",
+      "template_sha256": "ae53464bf3be25802b3a5b37def7fd89667067d7577049b3b2d74c4d8de4c6d4",
+      "model_path": "ml/models/gemma-4-26B_q4_0-it.gguf",
+      "model_sha256": "3eca3b8f6d7baf218a7dd6bba5fb59a56ee25fe2d567b6f5f589b4f697eca51d",
+      "model_bytes": 14439363584,
+      "runtime_status": "passive_template_tokenizer_and_generation_smoke_not_run",
+      "license": {
+        "identifier": "apache-2.0",
+        "source": "https://huggingface.co/google/gemma-4-26B-A4B-it",
+        "local_license_file": null,
+        "status": "vendor_metadata_only_not_a_local_license_snapshot"
+      },
+      "vendor_diagnostic": {
+        "reviewed_at": "2026-09-26",
+        "source": "https://huggingface.co/google/gemma-4-26B-A4B-it#best-practices",
+        "mode": "non-thinking",
+        "sampling": {
+          "temperature": 1.0,
+          "top_p": 0.95,
+          "top_k": 64
+        },
+        "scope": "Native base recommendation; not a performance claim for this adapter or quantization.",
+        "reasoning_note": "Disable thinking through the native template. Empty thought tags can remain for this size; preserve raw response and separate final content."
+      },
+      "status": "ready_local_weights",
+      "quant_repository": "google/gemma-4-26B-A4B-it-qat-q4_0-gguf",
+      "quant_revision": "d1c082be9cf3c8a514acf63b8761f4b41935842e",
+      "weights_verified_sha256_at": "2026-09-26",
+      "quantization": "QAT Q4_0",
+      "quantization_provenance": "Existing pinned GGUF repository/revision and file hash; exact native revision lineage and conversion recipe are not embedded in the local GGUF.",
+      "gguf_template_sha256": "ae53464bf3be25802b3a5b37def7fd89667067d7577049b3b2d74c4d8de4c6d4",
+      "gguf_template_matches_pinned_native": true
+    },
+    {
+      "id": "qwen27",
+      "tokenizer_id": "qwen27",
+      "base_repository": "Qwen/Qwen3.8-27B",
+      "base_revision": "1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0",
+      "tokenizer_path": "artifacts/datasets/nep-release-v1/comparison-tokenizers-v2/qwen27",
+      "tokenizer_files_sha256": {
+        "tokenizer_config.json": "b11349aafa7cdc6a320767cf7ceb29ed82f7eda5d65e8e0819e76f0ce947bf27",
+        "config.json": "191e0af232104ed8b65258cf3fb2b842e288008baca7633c11b82a1ac7203aab",
+        "tokenizer.json": "0997f410c57a1f4e53b09e4be8f4a172d90edd9564368fb0847030937229b9f3",
+        "chat_template.jinja": "c3cf9e34abf4f9e36c2d72165aa9c132d3e2a725b6c2586aaa3a8af9d7a81041"
+      },
+      "template_path": "artifacts/datasets/nep-release-v1/comparison-tokenizers-v2/qwen27/chat_template.jinja",
+      "template_sha256": "c3cf9e34abf4f9e36c2d72165aa9c132d3e2a725b6c2586aaa3a8af9d7a81041",
+      "model_path": "ml/models/Qwen3.8-27B-UD-Q4_K_M.gguf",
+      "model_sha256": "322e194ff79741c7baa497c240f677f54b201b0efab44ca8e50f122b39123482",
+      "model_bytes": 16464440224,
+      "runtime_status": "passive_template_tokenizer_and_generation_smoke_not_run",
+      "license": {
+        "identifier": "apache-2.0",
+        "source": "https://huggingface.co/Qwen/Qwen3.8-27B",
+        "local_license_file": null,
+        "status": "vendor_metadata_only_not_a_local_license_snapshot"
+      },
+      "vendor_diagnostic": {
+        "reviewed_at": "2026-09-26",
+        "source": "https://huggingface.co/Qwen/Qwen3.8-27B#best-practices",
+        "mode": "non-thinking",
+        "sampling": {
+          "temperature": 0.7,
+          "top_p": 0.8,
+          "top_k": 20,
+          "min_p": 0.0,
+          "presence_penalty": 1.5,
+          "repeat_penalty": 1.0
+        },
+        "scope": "Native base recommendation; not a performance claim for this adapter or quantization."
+      },
+      "status": "ready_local_weights",
+      "quant_repository": "unsloth/Qwen3.8-27B-GGUF",
+      "quant_revision": "4ca720788d1e01f1bff70c033e0d0028fd02e502",
+      "weights_verified_sha256_at": "2026-09-26",
+      "quantization": "UD-Q4_K_M",
+      "quantization_provenance": "Existing pinned GGUF repository/revision and file hash; exact native revision lineage and conversion recipe are not embedded in the local GGUF.",
+      "gguf_template_sha256": "12827f24b742ea4e80cdc12dbcf9622227056b9f797252a3149263d4f9aaadce",
+      "gguf_template_matches_pinned_native": false,
+      "template_note": "Embedded GGUF template differs from the frozen native template. An explicit pinned template and complete token-ID parity check are mandatory before passive scoring."
+    }
+  ]
+}
