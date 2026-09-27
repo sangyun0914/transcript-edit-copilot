@@ -1,0 +1,642 @@
+{
+  "$defs": {
+    "CaptionProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": 1,
+          "default": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "export_line_length": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Export Line Length"
+        },
+        "min_cue_ms": {
+          "default": 1000,
+          "exclusiveMinimum": 0,
+          "title": "Min Cue Ms",
+          "type": "integer"
+        },
+        "max_merge_cue_ms": {
+          "default": 7000,
+          "exclusiveMinimum": 0,
+          "title": "Max Merge Cue Ms",
+          "type": "integer"
+        },
+        "max_merge_text_utf16": {
+          "default": 84,
+          "exclusiveMinimum": 0,
+          "title": "Max Merge Text Utf16",
+          "type": "integer"
+        }
+      },
+      "title": "CaptionProfile",
+      "type": "object"
+    },
+    "CueMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 0,
+          "title": "Count",
+          "type": "integer"
+        },
+        "min_ms": {
+          "minimum": 0,
+          "title": "Min Ms",
+          "type": "integer"
+        },
+        "max_ms": {
+          "minimum": 0,
+          "title": "Max Ms",
+          "type": "integer"
+        },
+        "max_text_utf16": {
+          "minimum": 0,
+          "title": "Max Text Utf16",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "count",
+        "min_ms",
+        "max_ms",
+        "max_text_utf16"
+      ],
+      "title": "CueMetrics",
+      "type": "object"
+    },
+    "Feedback": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "no_action",
+            "correct_text",
+            "delete_span",
+            "trim_silence",
+            "remove_silence",
+            "split_paragraph",
+            "merge_paragraph"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "accepted",
+            "dismissed",
+            "modified",
+            "undone",
+            "expired",
+            "invalidated"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "origin": {
+          "enum": [
+            "human",
+            "ai_computer_use",
+            "synthetic"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "before": {
+          "title": "Before",
+          "type": "string"
+        },
+        "proposed_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Proposed Text"
+        },
+        "proposed_keep_ms": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Proposed Keep Ms"
+        },
+        "applied_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Applied Text"
+        },
+        "applied_keep_ms": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Applied Keep Ms"
+        },
+        "visible_targets": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Visible Targets",
+          "type": "array"
+        },
+        "same_context": {
+          "title": "Same Context",
+          "type": "boolean"
+        },
+        "reason": {
+          "default": "unspecified",
+          "enum": [
+            "unspecified",
+            "timing",
+            "target",
+            "parameter",
+            "preference"
+          ],
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "outcome",
+        "origin",
+        "before",
+        "visible_targets",
+        "same_context"
+      ],
+      "title": "Feedback",
+      "type": "object"
+    },
+    "Item": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "minimum": 0,
+          "title": "Id",
+          "type": "integer"
+        },
+        "type": {
+          "enum": [
+            "text",
+            "non_text"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "text": {
+          "default": "",
+          "title": "Text",
+          "type": "string"
+        },
+        "duration_ms": {
+          "exclusiveMinimum": 0,
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "paragraph": {
+          "minimum": 0,
+          "title": "Paragraph",
+          "type": "integer"
+        },
+        "speaker": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Speaker"
+        },
+        "language": {
+          "title": "Language",
+          "type": "string"
+        },
+        "source_backed": {
+          "default": true,
+          "title": "Source Backed",
+          "type": "boolean"
+        },
+        "source_run": {
+          "minimum": 0,
+          "title": "Source Run",
+          "type": "integer"
+        },
+        "boundary_status": {
+          "enum": [
+            "verified",
+            "unverified",
+            "needs_alignment",
+            "overlap"
+          ],
+          "title": "Boundary Status",
+          "type": "string"
+        },
+        "audio_class": {
+          "enum": [
+            "speech",
+            "verified_silence",
+            "unknown",
+            "audio_event"
+          ],
+          "title": "Audio Class",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "duration_ms",
+        "paragraph",
+        "speaker",
+        "language",
+        "source_run",
+        "boundary_status",
+        "audio_class"
+      ],
+      "title": "Item",
+      "type": "object"
+    },
+    "ParagraphFacts": {
+      "additionalProperties": false,
+      "properties": {
+        "paragraph": {
+          "minimum": 0,
+          "title": "Paragraph",
+          "type": "integer"
+        },
+        "first_id": {
+          "minimum": 0,
+          "title": "First Id",
+          "type": "integer"
+        },
+        "last_id": {
+          "minimum": 0,
+          "title": "Last Id",
+          "type": "integer"
+        },
+        "speaker": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Speaker"
+        },
+        "language": {
+          "title": "Language",
+          "type": "string"
+        },
+        "text_items": {
+          "minimum": 0,
+          "title": "Text Items",
+          "type": "integer"
+        },
+        "text_utf16": {
+          "minimum": 0,
+          "title": "Text Utf16",
+          "type": "integer"
+        },
+        "duration_ms": {
+          "minimum": 0,
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "protected": {
+          "title": "Protected",
+          "type": "boolean"
+        },
+        "prefix_text_items": {
+          "minimum": 0,
+          "title": "Prefix Text Items",
+          "type": "integer"
+        },
+        "prefix_text_utf16": {
+          "minimum": 0,
+          "title": "Prefix Text Utf16",
+          "type": "integer"
+        },
+        "suffix_text_items": {
+          "minimum": 0,
+          "title": "Suffix Text Items",
+          "type": "integer"
+        },
+        "suffix_text_utf16": {
+          "minimum": 0,
+          "title": "Suffix Text Utf16",
+          "type": "integer"
+        },
+        "visible_start_ms": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Visible Start Ms",
+          "type": "array"
+        },
+        "exported": {
+          "$ref": "#/$defs/CueMetrics"
+        },
+        "split_exports": {
+          "items": {
+            "$ref": "#/$defs/SplitMetrics"
+          },
+          "title": "Split Exports",
+          "type": "array"
+        }
+      },
+      "required": [
+        "paragraph",
+        "first_id",
+        "last_id",
+        "speaker",
+        "language",
+        "text_items",
+        "text_utf16",
+        "duration_ms",
+        "protected",
+        "prefix_text_items",
+        "prefix_text_utf16",
+        "suffix_text_items",
+        "suffix_text_utf16",
+        "visible_start_ms",
+        "exported",
+        "split_exports"
+      ],
+      "title": "ParagraphFacts",
+      "type": "object"
+    },
+    "RecentEdit": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "no_action",
+            "correct_text",
+            "delete_span",
+            "trim_silence",
+            "remove_silence",
+            "split_paragraph",
+            "merge_paragraph"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "origin": {
+          "enum": [
+            "human",
+            "ai_computer_use",
+            "synthetic"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "before": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Before"
+        },
+        "after": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "After"
+        },
+        "before_ms": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Before Ms"
+        },
+        "after_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "After Ms"
+        }
+      },
+      "required": [
+        "action",
+        "origin"
+      ],
+      "title": "RecentEdit",
+      "type": "object"
+    },
+    "SplitMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "target": {
+          "minimum": 0,
+          "title": "Target",
+          "type": "integer"
+        },
+        "after": {
+          "$ref": "#/$defs/CueMetrics"
+        }
+      },
+      "required": [
+        "target",
+        "after"
+      ],
+      "title": "SplitMetrics",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 4,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "task": {
+      "const": "predict_next_transcript_edit",
+      "title": "Task",
+      "type": "string"
+    },
+    "language": {
+      "title": "Language",
+      "type": "string"
+    },
+    "mode": {
+      "const": "transcript_cleanup",
+      "title": "Mode",
+      "type": "string"
+    },
+    "task_brief": {
+      "maxLength": 2000,
+      "title": "Task Brief",
+      "type": "string"
+    },
+    "cursor_before": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Cursor Before"
+    },
+    "selection": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Selection",
+      "type": "array"
+    },
+    "recent_edits": {
+      "items": {
+        "$ref": "#/$defs/RecentEdit"
+      },
+      "maxItems": 8,
+      "title": "Recent Edits",
+      "type": "array"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/Item"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Items",
+      "type": "array"
+    },
+    "allowed_actions": {
+      "items": {
+        "enum": [
+          "no_action",
+          "correct_text",
+          "delete_span",
+          "trim_silence",
+          "remove_silence",
+          "split_paragraph",
+          "merge_paragraph"
+        ],
+        "type": "string"
+      },
+      "title": "Allowed Actions",
+      "type": "array"
+    },
+    "protected_ids": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Protected Ids",
+      "type": "array"
+    },
+    "complete_paragraphs": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Complete Paragraphs",
+      "type": "array"
+    },
+    "recent_feedback": {
+      "items": {
+        "$ref": "#/$defs/Feedback"
+      },
+      "maxItems": 8,
+      "title": "Recent Feedback",
+      "type": "array"
+    },
+    "caption_profile": {
+      "$ref": "#/$defs/CaptionProfile"
+    },
+    "caption_facts": {
+      "items": {
+        "$ref": "#/$defs/ParagraphFacts"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Caption Facts",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "task",
+    "language",
+    "mode",
+    "task_brief",
+    "cursor_before",
+    "selection",
+    "recent_edits",
+    "items",
+    "allowed_actions",
+    "protected_ids",
+    "complete_paragraphs",
+    "recent_feedback",
+    "caption_profile",
+    "caption_facts"
+  ],
+  "title": "Snapshot",
+  "type": "object"
+}

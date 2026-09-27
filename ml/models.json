@@ -1,0 +1,37 @@
+{
+  "runtime": {
+    "repository": "ggml-org/llama.cpp",
+    "tag": "b10816",
+    "asset": "llama-b10816-bin-macos-arm64.tar.gz",
+    "sha256": "726ca8e7680203280b72029f92380aaf482e6a48ebe4a73fbe934ccc0bcf2de9"
+  },
+  "models": [
+    {
+      "id": "gemma12",
+      "label": "Gemma 4 12B",
+      "repository": "google/gemma-4-12B-it-qat-q4_0-gguf",
+      "revision": "29d097773436b69ff9feafd636ab4cf873786537",
+      "file": "gemma-4-12b-it-qat-q4_0.gguf",
+      "bytes": 6975879296,
+      "sha256": "93567e57a8fe10b23569b9d9ec38cd005deedf71e29477c421a4b83f418a538b"
+    },
+    {
+      "id": "gemma26",
+      "label": "Gemma 4 26B-A4B",
+      "repository": "google/gemma-4-26B-A4B-it-qat-q4_0-gguf",
+      "revision": "d1c082be9cf3c8a514acf63b8761f4b41935842e",
+      "file": "gemma-4-26B_q4_0-it.gguf",
+      "bytes": 14439363584,
+      "sha256": "3eca3b8f6d7baf218a7dd6bba5fb59a56ee25fe2d567b6f5f589b4f697eca51d"
+    },
+    {
+      "id": "qwen27",
+      "label": "Qwen3.8-27B",
+      "repository": "unsloth/Qwen3.8-27B-GGUF",
+      "revision": "4ca720788d1e01f1bff70c033e0d0028fd02e502",
+      "file": "Qwen3.8-27B-UD-Q4_K_M.gguf",
+      "bytes": 16464440224,
+      "sha256": "322e194ff79741c7baa497c240f677f54b201b0efab44ca8e50f122b39123482"
+    }
+  ]
+}

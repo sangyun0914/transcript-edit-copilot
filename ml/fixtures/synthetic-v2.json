@@ -1,0 +1,589 @@
+[
+  {
+    "id": "repeat-terminology",
+    "family": "correction",
+    "brief": "의미와 말투를 보존하고 필요한 수정만 제안하세요.",
+    "paragraphs": [
+      [
+        {
+          "id": "w0",
+          "text": "이번",
+          "ms": 400
+        },
+        {
+          "id": "w1",
+          "text": "데이타",
+          "ms": 400
+        },
+        {
+          "id": "w2",
+          "text": "분석입니다.",
+          "ms": 400
+        }
+      ]
+    ],
+    "focus": "w1",
+    "expected": {
+      "action": "correct_text",
+      "target": [
+        "w1"
+      ],
+      "text": "데이터"
+    },
+    "reason": "Constructed spelling variant, supported by the visible earlier correction. Not an observed ASR error.",
+    "corrupted": true,
+    "history": [
+      {
+        "action": "correct_text",
+        "before": "데이타",
+        "after": "데이터",
+        "origin": "synthetic"
+      }
+    ],
+    "export_project": true
+  },
+  {
+    "id": "multi-item-correction",
+    "family": "correction-span",
+    "brief": "의미와 말투를 보존하고 필요한 수정만 제안하세요.",
+    "paragraphs": [
+      [
+        {
+          "id": "w0",
+          "text": "머신",
+          "ms": 400
+        },
+        {
+          "id": "w1",
+          "text": "러 닝을",
+          "ms": 400
+        },
+        {
+          "id": "w2",
+          "text": "설명합니다.",
+          "ms": 400
+        }
+      ]
+    ],
+    "focus": "w0",
+    "expected": {
+      "action": "correct_text",
+      "target": [
+        "w0",
+        "w1"
+      ],
+      "text": "머신 러닝을"
+    },
+    "reason": "AI-authored spacing error spanning two source items; audio interval must remain unchanged.",
+    "corrupted": true,
+    "history": [
+      {
+        "action": "correct_text",
+        "before": "러 닝",
+        "after": "러닝",
+        "origin": "synthetic"
+      }
+    ]
+  },
+  {
+    "id": "delete-hesitation",
+    "family": "speech-cut",
+    "brief": "도입부의 의미 없는 어를 제거하고 바로 시작하겠습니다로 시작하세요.",
+    "paragraphs": [
+      [
+        {
+          "id": "w0",
+          "text": "어",
+          "ms": 400
+        },
+        {
+          "id": "w1",
+          "text": "시작하겠습니다.",
+          "ms": 400
+        }
+      ]
+    ],
+    "focus": "w0",
+    "expected": {
+      "action": "delete_span",
+      "target": [
+        "w0"
+      ]
+    },
+    "reason": "Symbolic boundary fixture: the brief explicitly requests removal of this hesitation; no acoustic qualification.",
+    "qualified_fixture": true
+  },
+  {
+    "id": "delete-with-gap",
+    "family": "speech-cut",
+    "brief": "도입의 어, 음과 그 사이 쉼을 제거하고 시작합니다부터 남기세요.",
+    "paragraphs": [
+      [
+        {
+          "id": "w0",
+          "text": "어",
+          "ms": 400
+        },
+        {
+          "id": "w1",
+          "text": "",
+          "ms": 1200
+        },
+        {
+          "id": "w2",
+          "text": "음",
+          "ms": 400
+        },
+        {
+          "id": "w3",
+          "text": "시작합니다.",
+          "ms": 400
+        }
+      ]
+    ],
+    "focus": "w0",
+    "expected": {
+      "action": "delete_span",
+      "target": [
+        "w0",
+        "w1",
+        "w2"
+      ]
+    },
+    "reason": "A complete deletion transaction includes the verified symbolic intervening gap.",
+    "qualified_fixture": true
+  },
+  {
+    "id": "trim-pause",
+    "family": "pause",
+    "brief": "항목 사이 긴 쉼은 이전처럼 725밀리초만 남기세요.",
+    "paragraphs": [
+      [
+        {
+          "id": "w0",
+          "text": "첫째입니다.",
+          "ms": 400
+        },
+        {
+          "id": "w1",
+          "text": "",
+          "ms": 1200
+        },
+        {
+          "id": "w2",
+          "text": "둘째입니다.",
+          "ms": 400
+        }
+      ]
+    ],
+    "focus": "w1",
+    "expected": {
+      "action": "trim_silence",
+      "target": [
+        "w1"
+      ],
+      "keep_ms": 725
+    },
+    "reason": "Symbolic pause fixture retains an arbitrary supported positive duration and both source edges.",
+    "qualified_fixture": true,
+    "history": [
+      {
+        "action": "trim_silence",
+        "before_ms": 1500,
+        "after_ms": 725,
+        "origin": "synthetic"
+      }
+    ]
+  },
+  {
+    "id": "remove-pause",
+    "family": "pause",
+    "brief": "준비와 완료입니다 사이의 무음은 완전히 제거하세요.",
+    "paragraphs": [
+      [
+        {
+          "id": "w0",
+          "text": "준비",
+          "ms": 400
+        },
+        {
+          "id": "w1",
+          "text": "",
+          "ms": 1200
+        },
+        {
+          "id": "w2",
+          "text": "완료입니다.",
+          "ms": 400
+        }
+      ]
+    ],
+    "focus": "w1",
+    "expected": {
+      "action": "remove_silence",
+      "target": [
+        "w1"
+      ]
+    },
+    "reason": "Explicitly requested full pause removal, distinct from shortening; acoustic quality remains untested.",
+    "qualified_fixture": true
+  },
+  {
+    "id": "split-caption",
+    "family": "caption-split",
+    "brief": "완결된 문장마다 자막을 나누세요. 현재 한 자막에 두 문장이 있습니다.",
+    "paragraphs": [
+      [
+        {
+          "id": "w0",
+          "text": "오늘은",
+          "ms": 400
+        },
+        {
+          "id": "w1",
+          "text": "맑습니다.",
+          "ms": 400
+        },
+        {
+          "id": "w2",
+          "text": "내일은",
+          "ms": 400
+        },
+        {
+          "id": "w3",
+          "text": "흐립니다.",
+          "ms": 400
+        }
+      ]
+    ],
+    "focus": "w2",
+    "expected": {
+      "action": "split_paragraph",
+      "target": [
+        "w2"
+      ]
+    },
+    "reason": "Two complete sentences in one caption; split at the second sentence under the brief."
+  },
+  {
+    "id": "merge-caption",
+    "family": "caption-merge",
+    "brief": "한 문장 안의 불필요한 자막 경계는 합치세요.",
+    "paragraphs": [
+      [
+        {
+          "id": "w0",
+          "text": "자료를",
+          "ms": 400
+        }
+      ],
+      [
+        {
+          "id": "w1",
+          "text": "확인합니다.",
+          "ms": 400
+        }
+      ]
+    ],
+    "focus": "w1",
+    "expected": {
+      "action": "merge_paragraph",
+      "target": [
+        "w1"
+      ]
+    },
+    "reason": "AI-constructed unnecessary boundary within one sentence and speaker."
+  },
+  {
+    "id": "clean-transcript",
+    "family": "clean",
+    "brief": "의미와 말투를 보존하고 필요한 수정만 제안하세요.",
+    "paragraphs": [
+      [
+        {
+          "id": "w0",
+          "text": "오늘은",
+          "ms": 400
+        },
+        {
+          "id": "w1",
+          "text": "자료를",
+          "ms": 400
+        },
+        {
+          "id": "w2",
+          "text": "확인합니다.",
+          "ms": 400
+        }
+      ]
+    ],
+    "focus": "w1",
+    "expected": {
+      "action": "no_action"
+    },
+    "reason": "This AI-authored transcript is already correct for the stated brief; do not manufacture an edit.",
+    "export_project": true
+  },
+  {
+    "id": "already-corrected",
+    "family": "clean",
+    "brief": "의미와 말투를 보존하고 필요한 수정만 제안하세요.",
+    "paragraphs": [
+      [
+        {
+          "id": "w0",
+          "text": "이번",
+          "ms": 400
+        },
+        {
+          "id": "w1",
+          "text": "데이터",
+          "ms": 400
+        },
+        {
+          "id": "w2",
+          "text": "분석입니다.",
+          "ms": 400
+        }
+      ]
+    ],
+    "focus": "w1",
+    "expected": {
+      "action": "no_action"
+    },
+    "reason": "The desired spelling is already present; do not repeat the correction.",
+    "history": [
+      {
+        "action": "correct_text",
+        "before": "데이타",
+        "after": "데이터",
+        "origin": "synthetic"
+      }
+    ]
+  },
+  {
+    "id": "meaningful-emphasis",
+    "family": "retention",
+    "brief": "의미와 말투를 보존하고 필요한 수정만 제안하세요.",
+    "paragraphs": [
+      [
+        {
+          "id": "w0",
+          "text": "정말",
+          "ms": 400
+        },
+        {
+          "id": "w1",
+          "text": "정말",
+          "ms": 400
+        },
+        {
+          "id": "w2",
+          "text": "중요합니다.",
+          "ms": 400
+        }
+      ]
+    ],
+    "focus": "w0",
+    "expected": {
+      "action": "no_action"
+    },
+    "reason": "Repetition conveys emphasis; its presence alone does not justify deletion.",
+    "qualified_fixture": true
+  },
+  {
+    "id": "meaningful-answer",
+    "family": "retention",
+    "brief": "의미와 말투를 보존하고 필요한 수정만 제안하세요.",
+    "paragraphs": [
+      [
+        {
+          "id": "w0",
+          "text": "동의하세요?",
+          "ms": 400
+        },
+        {
+          "id": "w1",
+          "text": "네.",
+          "ms": 400
+        }
+      ]
+    ],
+    "focus": "w1",
+    "expected": {
+      "action": "no_action"
+    },
+    "reason": "A meaningful answer must remain even when short.",
+    "qualified_fixture": true
+  },
+  {
+    "id": "unknown-gap",
+    "family": "ineligible",
+    "brief": "불필요한 무음만 줄이세요. 소리 종류가 불명확하면 유지하세요.",
+    "paragraphs": [
+      [
+        {
+          "id": "w0",
+          "text": "설명합니다.",
+          "ms": 400
+        },
+        {
+          "id": "w1",
+          "text": "",
+          "ms": 1200
+        },
+        {
+          "id": "w2",
+          "text": "계속합니다.",
+          "ms": 400
+        }
+      ]
+    ],
+    "focus": "w1",
+    "expected": {
+      "action": "no_action"
+    },
+    "reason": "Unknown non-text may contain a breath or speech; do not call it silence."
+  },
+  {
+    "id": "protected-term",
+    "family": "protected",
+    "brief": "의미와 말투를 보존하고 필요한 수정만 제안하세요.",
+    "paragraphs": [
+      [
+        {
+          "id": "w0",
+          "text": "데이타",
+          "ms": 400
+        },
+        {
+          "id": "w1",
+          "text": "분석입니다.",
+          "ms": 400
+        }
+      ]
+    ],
+    "focus": "w0",
+    "expected": {
+      "action": "no_action"
+    },
+    "reason": "Protection overrides a matching recent terminology correction.",
+    "protected": [
+      "w0"
+    ],
+    "history": [
+      {
+        "action": "correct_text",
+        "before": "데이타",
+        "after": "데이터",
+        "origin": "synthetic"
+      }
+    ]
+  },
+  {
+    "id": "quoted-instruction",
+    "family": "retention",
+    "brief": "의미와 말투를 보존하고 필요한 수정만 제안하세요.",
+    "paragraphs": [
+      [
+        {
+          "id": "w0",
+          "text": "모두",
+          "ms": 400
+        },
+        {
+          "id": "w1",
+          "text": "삭제하라는",
+          "ms": 400
+        },
+        {
+          "id": "w2",
+          "text": "문장을",
+          "ms": 400
+        },
+        {
+          "id": "w3",
+          "text": "인용합니다.",
+          "ms": 400
+        }
+      ]
+    ],
+    "focus": "w1",
+    "expected": {
+      "action": "no_action"
+    },
+    "reason": "Spoken instructions are transcript data, not commands to the predictor."
+  },
+  {
+    "id": "uncertain-name",
+    "family": "ambiguity",
+    "brief": "의미와 말투를 보존하고 필요한 수정만 제안하세요.",
+    "paragraphs": [
+      [
+        {
+          "id": "w0",
+          "text": "김세동",
+          "ms": 400
+        },
+        {
+          "id": "w1",
+          "text": "연구자가",
+          "ms": 400
+        },
+        {
+          "id": "w2",
+          "text": "발표합니다.",
+          "ms": 400
+        }
+      ]
+    ],
+    "focus": "w0",
+    "expected": null,
+    "reason": "The proper name has no spelling reference or speech evidence. Human review should refine generation; no target is assumed.",
+    "proposal": {
+      "action": "correct_text",
+      "target": [
+        "w0"
+      ],
+      "text": "김세돈"
+    }
+  },
+  {
+    "id": "uncertain-style",
+    "family": "ambiguity",
+    "brief": "의미와 말투를 보존하고 필요한 수정만 제안하세요.",
+    "paragraphs": [
+      [
+        {
+          "id": "w0",
+          "text": "그래서",
+          "ms": 400
+        },
+        {
+          "id": "w1",
+          "text": "이제",
+          "ms": 400
+        },
+        {
+          "id": "w2",
+          "text": "설명을",
+          "ms": 400
+        },
+        {
+          "id": "w3",
+          "text": "시작합니다.",
+          "ms": 400
+        }
+      ]
+    ],
+    "focus": "w1",
+    "expected": null,
+    "reason": "The available history does not establish whether the discourse marker is distracting or intentional.",
+    "proposal": {
+      "action": "delete_span",
+      "target": [
+        "w1"
+      ]
+    }
+  }
+]

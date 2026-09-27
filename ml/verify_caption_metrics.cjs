@@ -1,0 +1,13 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const { createRequire } = require('node:module');
+const root=path.resolve(__dirname,'..');
+const appRequire=createRequire(path.join(root,'app/package.json'));
+const swc=appRequire('@swc/core');
+require.extensions['.ts']=(module,filename)=>{module._compile(swc.transformSync(fs.readFileSync(filename,'utf8'),{filename,jsc:{parser:{syntax:'typescript'},target:'es2020'},module:{type:'commonjs'}}).code,filename)};
+const {contentToVtt}=require(path.join(root,'app/src/core/webvtt.ts'));
+const request=JSON.parse(fs.readFileSync(0,'utf8'));
+const text=contentToVtt(request.document.content,false,false,request.line_length).toString();
+const seconds=value=>value.split(':').reduce((n,v)=>n*60+Number(v),0);
+const cues=text.split('\n\n').slice(1).filter(b=>b.trim()).map(block=>{const[timing,...lines]=block.trim().split('\n');const[start,end]=timing.split(' --> ').map(seconds);return{ms:Math.round((end-start)*1000),text:lines.join(' ')}});
+console.log(JSON.stringify({count:cues.length,min_ms:Math.min(...cues.map(c=>c.ms)),max_ms:Math.max(...cues.map(c=>c.ms)),max_text_utf16:Math.max(...cues.map(c=>c.text.length))}));

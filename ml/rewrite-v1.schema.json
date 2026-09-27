@@ -1,0 +1,127 @@
+{
+  "$defs": {
+    "AfterItem": {
+      "additionalProperties": false,
+      "properties": {
+        "ids": {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 256,
+          "minItems": 1,
+          "title": "Ids",
+          "type": "array"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text"
+        },
+        "audio": {
+          "discriminator": {
+            "mapping": {
+              "edges": "#/$defs/EdgeAudio",
+              "full": "#/$defs/FullAudio"
+            },
+            "propertyName": "mode"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/FullAudio"
+            },
+            {
+              "$ref": "#/$defs/EdgeAudio"
+            }
+          ],
+          "title": "Audio"
+        },
+        "boundary_before": {
+          "title": "Boundary Before",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ids",
+        "text",
+        "audio",
+        "boundary_before"
+      ],
+      "title": "AfterItem",
+      "type": "object"
+    },
+    "EdgeAudio": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "const": "edges",
+          "title": "Mode",
+          "type": "string"
+        },
+        "keep_ms": {
+          "exclusiveMinimum": 0,
+          "title": "Keep Ms",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "mode",
+        "keep_ms"
+      ],
+      "title": "EdgeAudio",
+      "type": "object"
+    },
+    "FullAudio": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "const": "full",
+          "title": "Mode",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode"
+      ],
+      "title": "FullAudio",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "format_version": {
+      "const": 1,
+      "title": "Format Version",
+      "type": "integer"
+    },
+    "scope": {
+      "items": {
+        "type": "integer"
+      },
+      "maxItems": 256,
+      "title": "Scope",
+      "type": "array"
+    },
+    "after": {
+      "items": {
+        "$ref": "#/$defs/AfterItem"
+      },
+      "maxItems": 256,
+      "title": "After",
+      "type": "array"
+    }
+  },
+  "required": [
+    "format_version",
+    "scope",
+    "after"
+  ],
+  "title": "Rewrite",
+  "type": "object"
+}

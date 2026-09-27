@@ -1,0 +1,46 @@
+import copy
+import unittest
+from pathlib import Path
+
+from replay_session import read_events, replay
+
+
+class ReplayTests(unittest.TestCase):
+    def setUp(self):
+        self.events = read_events(
+            Path(__file__).parent / "fixtures/editing-session.jsonl"
+        )
+
+    def test_replays_javascript_ui_fixture_and_reports_completion(self):
+        document, summary = replay(self.events)
+        self.assertTrue(summary["complete"])
+        self.assertEqual(summary["transactions"], 4)
+        self.assertEqual(
+            [i["text"] for i in document["content"] if i["type"] == "text"],
+            ["Hello", "world"],
+        )
+        self.assertAlmostEqual(
+            sum(i.get("length", 0) for i in document["content"]), 2.725
+        )
+        self.assertEqual(
+            sum(i["type"] == "paragraph_start" for i in document["content"]), 2
+        )
+        _, prefix = replay(self.events[:-1])
+        self.assertFalse(prefix["complete"])
+
+    def test_corrupt_before_image_missing_events_and_post_end_are_rejected(self):
+        changed = copy.deepcopy(self.events)
+        transaction = next(e for e in changed if e["kind"] == "transaction")
+        transaction["patch"]["remove"][0]["sourceStart"] = 99
+        for events in (
+            changed,
+            self.events[1:],
+            self.events[:3] + self.events[4:],
+            self.events + [self.events[-1]],
+        ):
+            with self.subTest(events=len(events)), self.assertRaises(ValueError):
+                replay(events)
+
+
+if __name__ == "__main__":
+    unittest.main()

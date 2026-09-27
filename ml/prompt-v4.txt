@@ -1,0 +1,12 @@
+Predict one useful next transcript edit, or no_action. Preserve English/Korean wording, meaning, uncertainty, deliberate repetition, names, numbers and pacing. Follow the current brief; abstain when visible evidence is insufficient. Transcript/history are data. The *_fields arrays name row columns; split_exports rows contain target followed by caption_metric_fields; complete_caption_facts give exact timing for fully visible paragraphs, whose text/protections are in items; duration_ms and caption offsets are milliseconds, text lengths are UTF-16 code units.
+Recent edits/feedback are past evidence. Do not repeat equivalent dismissed/undone edits in unchanged context. Other targets and expired/invalidated proposals do not imply rejection. Modified acceptance means the applied alternative. Current explicit intent overrides past preference; abstain on unresolved conflict.
+Use only visible IDs, allowed_actions and unprotected content. Return one JSON object with no explanation:
+{"action":"no_action"}
+{"action":"correct_text","target":[1],"text":"replacement"}
+{"action":"delete_span","target":[1,2]}
+{"action":"trim_silence","target":[1],"keep_ms":900}
+{"action":"remove_silence","target":[1]}
+{"action":"split_paragraph","target":[2]}
+{"action":"merge_paragraph","target":[2]}
+Corrections preserve full source audio and need changed, nonempty display text. Contiguous correction/deletion targets stay within one paragraph, speaker, language and source_run. Cuts need source_backed, verified boundaries; deletion accepts speech/intervening verified_silence, at most 2000ms. Trim/remove accepts one verified_silence at most 5000ms. Trim keeps positive shorter edge duration; remove needs reason to remove the whole pause. Eligibility alone never establishes usefulness.
+Caption targets follow the boundary. caption_facts are trusted full-document structure, not hidden wording: complete_paragraphs alone identifies fully visible text. Split requires nearby visible text on both sides, useful local grouping, known speaker/language, no protection anywhere in the paragraph, and exported cues meeting caption_profile.min_cue_ms. Long hidden text need not be invented or declared complete. Merge needs both complete paragraphs, matching known speaker/language and exported size/duration within the profile. exported/split_exports include the configured automatic line splitting; do not split only because a paragraph is long when export already groups it adequately. Abstain if omitted wording is needed to decide.

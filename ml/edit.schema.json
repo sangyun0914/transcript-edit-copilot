@@ -1,0 +1,134 @@
+{
+  "$defs": {
+    "CorrectText": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "const": "correct_text",
+          "title": "Action",
+          "type": "string"
+        },
+        "target": {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "title": "Target",
+          "type": "array"
+        },
+        "text": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "target",
+        "text"
+      ],
+      "title": "CorrectText",
+      "type": "object"
+    },
+    "DeleteSpan": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "const": "delete_span",
+          "title": "Action",
+          "type": "string"
+        },
+        "target": {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Target",
+          "type": "array"
+        }
+      },
+      "required": [
+        "action",
+        "target"
+      ],
+      "title": "DeleteSpan",
+      "type": "object"
+    },
+    "NoAction": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "const": "no_action",
+          "title": "Action",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "title": "NoAction",
+      "type": "object"
+    },
+    "TrimSilence": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "const": "trim_silence",
+          "title": "Action",
+          "type": "string"
+        },
+        "target": {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "title": "Target",
+          "type": "array"
+        },
+        "keep_ms": {
+          "enum": [
+            200,
+            300,
+            500
+          ],
+          "title": "Keep Ms",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "action",
+        "target",
+        "keep_ms"
+      ],
+      "title": "TrimSilence",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "correct_text": "#/$defs/CorrectText",
+      "delete_span": "#/$defs/DeleteSpan",
+      "no_action": "#/$defs/NoAction",
+      "trim_silence": "#/$defs/TrimSilence"
+    },
+    "propertyName": "action"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/NoAction"
+    },
+    {
+      "$ref": "#/$defs/DeleteSpan"
+    },
+    {
+      "$ref": "#/$defs/CorrectText"
+    },
+    {
+      "$ref": "#/$defs/TrimSilence"
+    }
+  ]
+}
