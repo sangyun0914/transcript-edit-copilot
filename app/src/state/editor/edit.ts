@@ -117,7 +117,10 @@ export const setText = createActionWithReducer<
   if (item.type !== 'text') {
     throw new Error('setText called on item that is not a text');
   }
-  item.text = payload.text;
+  if (item.text !== payload.text) {
+    item.text = payload.text;
+    item.conf = 1;
+  }
 });
 
 export const trimSelectedGap = createActionWithReducer<

@@ -23,6 +23,8 @@ import { MenuItem, showContextMenu } from '../../components/Menu';
 import styled from 'styled-components';
 import { GapItem, isGap, sameGap } from '../../core/gaps';
 import { Gap } from './Gap';
+import { CopilotOriginal, CopilotPreview } from './Copilot';
+import { currentCopilotProposal } from '../../state/copilot';
 
 export function Paragraph({
   data,
@@ -40,6 +42,14 @@ export function Paragraph({
   editingRange: Selection | null;
 }): JSX.Element {
   const theme = useTheme();
+  const proposal = useSelector(currentCopilotProposal)?.response;
+  const proposalTargets = new Set(proposal?.target_uuids);
+  const boundaryChange =
+    proposal?.prediction.action === 'split_paragraph' ||
+    proposal?.prediction.action === 'merge_paragraph';
+  const previewTarget = boundaryChange
+    ? proposal?.target_uuids[0]
+    : proposal?.target_uuids[proposal.target_uuids.length - 1];
 
   const displayConfidence = useSelector(
     (state: RootState) => state.editor.present?.displayConfidence || false
@@ -61,6 +71,9 @@ export function Paragraph({
           style: { textDecoration: 'underline dotted', textUnderlineOffset: '3px' },
         }),
       };
+      const removed = !boundaryChange && proposalTargets.has(item.uuid);
+      if (boundaryChange && item.uuid === previewTarget)
+        rendered.push(<CopilotPreview key="copilot-preview" />);
       if (editingRange && editingRange.startIndex === item.absoluteIndex) {
         rendered.push(<TranscriptCorrectionEntry {...commonProps} />);
       } else if (
@@ -74,12 +87,15 @@ export function Paragraph({
         while (
           i + 1 < data.content.length &&
           sameGap(item, data.content[i + 1]) &&
+          (!boundaryChange || data.content[i + 1].uuid !== previewTarget) &&
+          data.content[i].uuid !== previewTarget &&
+          proposalTargets.has(data.content[i + 1].uuid) === proposalTargets.has(item.uuid) &&
           data.content[i + 1].absoluteIndex !== editingRange?.startIndex
         ) {
           i++;
         }
         const gaps = data.content.slice(start, i + 1) as (GapItem & TimedItemExtension)[];
-        rendered.push(
+        const gap = (
           <Gap
             key={item.uuid}
             items={gaps}
@@ -89,9 +105,12 @@ export function Paragraph({
               .join(' ')}
           />
         );
+        rendered.push(removed ? <CopilotOriginal key={item.uuid}>{gap}</CopilotOriginal> : gap);
       } else {
-        rendered.push(renderParagraphItem(item, displayConfidence, commonProps));
+        rendered.push(renderParagraphItem(item, displayConfidence, commonProps, removed));
       }
+      if (!boundaryChange && data.content[i].uuid === previewTarget)
+        rendered.push(<CopilotPreview key="copilot-preview" />);
     }
     return rendered;
   }
@@ -108,7 +127,11 @@ export function Paragraph({
         marginRight={majorScale(1)}
       />
       <span key={data.uuid} id={`item-${data.uuid}`} />
-      <Pane color={displaySpeakerNames ? color : theme.colors.default} transition={'color 0.5s'}>
+      <Pane
+        color={displaySpeakerNames ? color : theme.colors.default}
+        transition={'color 0.5s'}
+        minWidth={0}
+      >
         {renderItems()}
         <ParagraphSign
           key={data.content.length}
@@ -124,9 +147,17 @@ export function Paragraph({
 function renderParagraphItem(
   item: V3TimedParagraphItem,
   displayConfidence: boolean,
-  commonProps: HTMLProps<HTMLSpanElement>
+  commonProps: HTMLProps<HTMLSpanElement>,
+  removed: boolean
 ): JSX.Element {
   if (item.type == 'text') {
+    if (removed)
+      return (
+        <span {...commonProps}>
+          {' '}
+          <CopilotOriginal>{item.text}</CopilotOriginal>
+        </span>
+      );
     if (displayConfidence && item.conf !== null) {
       return (
         <span {...commonProps}>

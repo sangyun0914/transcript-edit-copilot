@@ -7,6 +7,7 @@ import editor from './editor';
 import models from './models';
 import server from './server';
 import recording, { recordingMiddleware } from './recording';
+import copilot, { copilotMiddleware } from './copilot';
 
 export const store = configureStore({
   reducer: {
@@ -16,11 +17,12 @@ export const store = configureStore({
     models,
     server,
     recording,
+    copilot,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: false,
-    }).concat(recordingMiddleware),
+    }).concat(copilotMiddleware, recordingMiddleware),
 });
 
 window.store = store;

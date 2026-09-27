@@ -10,6 +10,10 @@ export interface AudapolisThemeExtension {
     speakers: Record<string, string>;
     playAccent: string;
     overlayBackgroundColor: string;
+    diffAdded: string;
+    diffAddedBackground: string;
+    diffRemoved: string;
+    diffRemovedBackground: string;
   };
 }
 
@@ -21,6 +25,10 @@ export const useTheme = (): Theme => useEvergreenTheme<Theme>();
 export const darkTheme: Theme = mergeTheme(defaultTheme, {
   colors: {
     overlayBackgroundColor: '#333',
+    diffAdded: '#a2e5b0',
+    diffAddedBackground: '#234332',
+    diffRemoved: '#ffb4b4',
+    diffRemovedBackground: '#532f35',
     darkerOverlayBackgroundColor: '#222',
     tint1: 'red',
     tint2: '#2A2A2A',
@@ -122,6 +130,10 @@ export const darkTheme: Theme = mergeTheme(defaultTheme, {
 export const lightTheme: Theme = mergeTheme(defaultTheme, {
   colors: {
     overlayBackgroundColor: 'white',
+    diffAdded: '#176b35',
+    diffAddedBackground: '#e2f5e8',
+    diffRemoved: '#a12635',
+    diffRemovedBackground: '#fde8eb',
     playAccent: '#ed6a5e',
     speakers: { 0: '#0f4880', 1: '#1d781d', 2: '#db0a5b', 3: '#8d6708', 4: '#d43900' },
   },

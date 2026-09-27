@@ -8,11 +8,13 @@ export async function fetchFromServer(
   body?: {
     form?: Record<string, any>;
     json?: any;
-  }
+  },
+  signal?: AbortSignal
 ): Promise<Response> {
   const options: RequestInit = {
     method,
     headers: { Authorization: `Bearer ${server.token}` },
+    signal,
   };
 
   const getString = getParameters ? '?' + encodeGetParams(getParameters) : '';
@@ -35,6 +37,7 @@ export async function fetchFromServer(
     try {
       const parsed = JSON.parse(body);
       if (typeof parsed.detail === 'string') message = parsed.detail;
+      else if (typeof parsed.detail?.message === 'string') message = parsed.detail.message;
     } catch {
       // Older endpoints return plain text errors.
       if (body) message = body;

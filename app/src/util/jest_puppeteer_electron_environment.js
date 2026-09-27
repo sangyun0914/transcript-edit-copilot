@@ -63,10 +63,17 @@ class CustomEnvironment extends NodeEnvironment {
   }
 
   async teardown() {
+    this.browser?.disconnect();
+    if (!this.process) return;
     if (process.platform === 'win32') {
       treeKill(this.process.pid);
     } else {
-      process.kill(-this.process.pid);
+      // Electron can survive SIGTERM on macOS after its npm parent exits.
+      try {
+        process.kill(-this.process.pid, 'SIGKILL');
+      } catch (error) {
+        if (error.code !== 'ESRCH') throw error;
+      }
     }
   }
 

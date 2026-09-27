@@ -5,7 +5,7 @@ import { EditorTitleBar } from './TitleBar';
 import { Document } from './Document';
 import { Player } from './Player';
 import { KeyboardEventHandler } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useStore } from 'react-redux';
 import { ExportDocumentDialog } from './ExportDocumentDialog';
 import { EditorTour } from '../../tour/EditorTour';
 import { togglePlaying } from '../../state/editor/play';
@@ -14,6 +14,9 @@ import { EditorMenuBar } from './MenuBar';
 import { FilterDialog } from './Filter';
 import { TranscriptionNotes } from './TranscriptionNotes';
 import { SessionRecorder } from './SessionRecorder';
+import { CopilotControls } from './Copilot';
+import { acceptCopilot, copilotKey, dismissCopilot } from '../../state/copilot';
+import type { RootState } from '../../state';
 
 const MainContainer = styled(MainCenterColumn)`
   justify-content: start;
@@ -25,6 +28,17 @@ const MainContainer = styled(MainCenterColumn)`
 `;
 export function EditorPage(): JSX.Element {
   const dispatch = useDispatch();
+  const store = useStore<RootState>();
+  const handleCopilotKey: KeyboardEventHandler = (event) => {
+    const decision = copilotKey(
+      { ...event, isComposing: event.nativeEvent.isComposing, keyCode: event.keyCode },
+      store.getState()
+    );
+    if (!decision) return;
+    event.preventDefault();
+    event.stopPropagation();
+    dispatch(decision === 'accept' ? acceptCopilot() : dismissCopilot());
+  };
   const handleKeyPress: KeyboardEventHandler = (e) => {
     if (e.key === ' ') {
       dispatch(togglePlaying());
@@ -35,13 +49,19 @@ export function EditorPage(): JSX.Element {
   };
 
   return (
-    <AppContainer tabIndex={-1} onKeyDown={handleKeyPress} ref={(ref) => ref?.focus()}>
+    <AppContainer
+      tabIndex={-1}
+      onKeyDown={handleKeyPress}
+      onKeyDownCapture={handleCopilotKey}
+      ref={(ref) => ref?.focus()}
+    >
       <EditorMenuBar />
       <EditorTour />
       <Player />
 
       <EditorTitleBar />
       <SessionRecorder />
+      <CopilotControls />
       <ExportDocumentDialog />
       <FilterDialog />
 

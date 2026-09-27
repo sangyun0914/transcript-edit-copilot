@@ -15,6 +15,7 @@ import {
 } from './edit';
 
 import { finishTranscriptCorrection } from './transcript_correction';
+import { acceptCopilotTransaction } from './copilot';
 
 import * as displayReducers from './display';
 import * as editReducers from './edit';
@@ -30,6 +31,7 @@ export const reducers: (
   | ActionWithReducers<EditorState, any>
   | AsyncActionWithReducers<EditorState, any, any>
 )[] = [
+  acceptCopilotTransaction,
   ...Object.values(displayReducers),
   ...Object.values(editReducers),
   ...Object.values(ioReducers),
@@ -70,6 +72,7 @@ const stateSlice: Reducer<StateWithHistory<EditorState | null>> = undoable(edito
     finishTranscriptCorrection.type,
     filterContent.type,
     trimSelectedGap.type,
+    acceptCopilotTransaction.type,
   ]),
   ignoreInitialState: false,
   syncFilter: true,

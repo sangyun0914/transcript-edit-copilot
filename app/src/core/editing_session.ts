@@ -94,6 +94,23 @@ function operation(patch: ContentPatch, action: string): string {
   if (action === 'transcript_correction/finishTranscriptCorrection' || action === 'editor/setWord')
     return 'correct_text';
   if (action === 'editor/insertParagraphEnd') return 'split_paragraph';
+  if (action === 'editor/acceptCopilot') {
+    if (insert.length === 1 && insert[0].type === 'text' && remove.length) return 'correct_text';
+    if (
+      remove.length === 1 &&
+      remove[0].type === 'non_text' &&
+      insert.length === 2 &&
+      insert.every((item) => item.type === 'non_text')
+    )
+      return 'trim_silence';
+    if (
+      !remove.length &&
+      insert.length === 2 &&
+      insert[0].type === 'paragraph_end' &&
+      insert[1].type === 'paragraph_start'
+    )
+      return 'split_paragraph';
+  }
   if (
     remove.length === 2 &&
     remove[0].type === 'paragraph_end' &&
