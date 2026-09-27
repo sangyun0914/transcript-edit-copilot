@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Transcript review</title>
+    <link rel="stylesheet" href="/assets/review.css" />
+    <script src="/assets/review.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <div>
+        <span class="eyebrow">TRANSCRIPT EDIT COPILOT</span>
+        <h1>Review the next edit</h1>
+      </div>
+      <div class="header-actions">
+        <label
+          >Review mode
+          <select id="mode">
+            <option value="assisted">Draft review</option>
+            <option value="blind">Independent first judgment</option>
+          </select></label
+        >
+        <a class="button secondary" href="/api/export" download
+          >Export review feedback</a
+        >
+      </div>
+    </header>
+    <div class="workspace">
+      <aside>
+        <h2 id="batch-title">Loading batch…</h2>
+        <p id="progress" role="status"></p>
+        <progress id="progress-bar" max="24" value="0"></progress>
+        <nav id="case-list" aria-label="Review cases"></nav>
+        <details>
+          <summary>About this batch</summary>
+          <p id="batch-note"></p>
+        </details>
+      </aside>
+      <main>
+        <div class="case-heading">
+          <div>
+            <span id="case-number" class="eyebrow"></span>
+            <h2 id="case-title">Choose a case</h2>
+          </div>
+          <div class="navigation">
+            <button id="previous" class="secondary">← Previous</button
+            ><button id="next" class="secondary">Next →</button>
+          </div>
+        </div>
+        <p id="context-note" class="muted"></p>
+        <div id="error" class="error" role="alert" hidden></div>
+        <section id="video-context" class="panel" hidden>
+          <div class="panel-heading">
+            <h3>Original video context</h3>
+            <button id="video-return" class="secondary">
+              Return to excerpt
+            </button>
+          </div>
+          <video
+            id="source-video"
+            controls
+            preload="metadata"
+            playsinline
+          ></video>
+          <p class="muted">
+            Original recording. Seek earlier or later for context; proposed
+            edits are not applied to this video.
+          </p>
+        </section>
+        <section id="independent" class="panel" hidden>
+          <h3>Your first judgment</h3>
+          <p>
+            Read and listen before seeing the draft. Does this excerpt need an
+            edit?
+          </p>
+          <label
+            >Decision
+            <select id="initial-judgment">
+              <option value="">Choose…</option>
+              <option value="edit_needed">I would edit something</option>
+              <option value="no_action">No useful edit</option>
+              <option value="unsure">Not enough evidence</option>
+            </select></label
+          >
+          <label
+            >What would you change?
+            <input
+              id="initial-note"
+              maxlength="2000"
+              placeholder="Optional, in your own words"
+          /></label>
+          <button id="reveal">Save first judgment and reveal draft</button>
+        </section>
+        <div class="comparison">
+          <section class="panel">
+            <div class="panel-heading">
+              <h3>Original</h3>
+              <span class="badge neutral">Source preserved</span>
+            </div>
+            <audio id="before-audio" controls preload="metadata"></audio>
+            <p id="selection-help" class="muted" hidden>
+              Choose the first and last item to adjust. For a caption boundary,
+              choose its first item.
+            </p>
+            <div
+              id="before"
+              class="transcript"
+              aria-label="Original transcript"
+            ></div>
+          </section>
+          <section class="panel">
+            <div class="panel-heading">
+              <h3 id="after-title">Proposed edit</h3>
+              <span id="action-badge" class="badge"></span>
+            </div>
+            <audio id="after-audio" controls preload="metadata"></audio>
+            <p id="hidden-draft" class="muted">
+              The draft is hidden until your first judgment is saved.
+            </p>
+            <div
+              id="after"
+              class="transcript"
+              aria-label="Proposed transcript"
+            ></div>
+          </section>
+        </div>
+        <section id="draft-details" hidden>
+          <p class="muted">
+            Each card previews one edit. Other words remain as originally
+            transcribed, including any other errors.
+          </p>
+          <p id="rationale"></p>
+          <div id="warnings" class="warning" hidden></div>
+          <details>
+            <summary>Context available to the predictor</summary>
+            <p id="history"></p>
+            <p class="muted">
+              Audio is available to you for review. The current predictor
+              receives transcript text and metadata.
+            </p>
+          </details>
+        </section>
+        <section id="review-form" class="panel" hidden>
+          <div class="panel-heading">
+            <h3>Your review</h3>
+            <span id="save-status" role="status" class="muted"
+              >Not labeled</span
+            >
+          </div>
+          <div class="quality-fields">
+            <label
+              >Meaning preserved?<select id="meaning">
+                <option value="">Not judged</option>
+                <option value="pass">Yes</option>
+                <option value="fail">No</option>
+                <option value="unsure">Unsure</option>
+              </select></label
+            >
+            <label
+              >Cut / pacing quality<select id="audio-quality">
+                <option value="not_checked">Not checked</option>
+                <option value="pass">Sounds good after listening</option>
+                <option value="fail">
+                  Clipped, unnatural or removes speech
+                </option>
+                <option value="not_applicable">No audio change</option>
+              </select></label
+            >
+            <label
+              >Useful to show now?<select id="show-now">
+                <option value="unsure">Cannot tell from this context</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select></label
+            >
+          </div>
+          <label
+            >Notes<textarea
+              id="notes"
+              rows="2"
+              maxlength="4000"
+              placeholder="What is wrong, missing, or worth preserving?"
+            ></textarea>
+          </label>
+          <div class="decisions">
+            <button id="accept">Acceptable</button
+            ><button id="reject" class="danger">Reject draft</button>
+            <button id="keep" class="secondary">No useful edit</button
+            ><button id="unsure" class="secondary">Unsure</button>
+            <button id="adjust-toggle" class="secondary">Adjust edit</button>
+          </div>
+          <div id="adjustment" hidden>
+            <h4>Adjust the proposed change</h4>
+            <p id="selected-target" class="muted"></p>
+            <div class="quality-fields">
+              <label
+                >Action<select id="adjust-action">
+                  <option value="correct_text">Correct transcript</option>
+                  <option value="delete_span">Remove speech</option>
+                  <option value="trim_silence">Shorten gap</option>
+                  <option value="remove_silence">Remove gap</option>
+                  <option value="split_paragraph">
+                    Split caption before selection
+                  </option>
+                  <option value="merge_paragraph">
+                    Merge caption with previous
+                  </option>
+                  <option value="no_action">No action</option>
+                </select></label
+              >
+              <label id="replacement-label"
+                >Replacement text<input id="replacement" maxlength="2000"
+              /></label>
+              <label id="duration-label"
+                >Retain milliseconds<input
+                  id="duration"
+                  type="number"
+                  min="1"
+                  step="10"
+                  value="300"
+              /></label>
+            </div>
+            <div class="decisions">
+              <button id="preview-adjustment" class="secondary">
+                Preview adjustment</button
+              ><button id="save-adjustment">Save adjustment</button
+              ><button id="cancel-adjustment" class="secondary">
+                Back to original draft
+              </button>
+            </div>
+          </div>
+          <details id="review-history">
+            <summary>Saved review history</summary>
+            <div id="saved-labels"></div>
+            <button id="clear-label" class="secondary">
+              Clear current label
+            </button>
+          </details>
+          <p class="muted shortcuts">
+            A acceptable · R reject · U unsure · ←/→ cases. Audio cuts require
+            both excerpts to be played through. Labels do not apply edits to
+            your project.
+          </p>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

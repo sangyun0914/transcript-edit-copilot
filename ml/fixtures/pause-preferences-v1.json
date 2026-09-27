@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "question": "Does changing only executed pause history change the suggested retained duration, while an explicit three-second eligibility cutoff and abstention controls remain respected?",
+  "scope": "AI-authored development diagnostics. The cutoff is explicit in the brief, not inferred from one edit. Timing and boundary evidence are symbolic; no human preference or acoustic quality claim.",
+  "groups": [
+    {
+      "id": "en-pause-botanical-tour",
+      "language": "en",
+      "sentences": ["The seedlings stay in this room overnight.", "We check the soil again in the morning."]
+    },
+    {
+      "id": "en-pause-radio-restoration",
+      "language": "en",
+      "sentences": ["The replacement dial turns smoothly.", "The cabinet still needs a final inspection."]
+    },
+    {
+      "id": "ko-pause-pottery-workshop",
+      "language": "ko",
+      "sentences": ["물레가 완전히 멈췄습니다.", "이제 그릇의 테두리를 확인하겠습니다."]
+    },
+    {
+      "id": "ko-pause-library-orientation",
+      "language": "ko",
+      "sentences": ["반납한 책은 이 선반에 놓아 주세요.", "직원이 확인한 뒤 서가로 옮깁니다."]
+    }
+  ]
+}

@@ -1,0 +1,141 @@
+{
+  "version": "source-qualification-v1",
+  "authorization": "data/manifests/project-source-use-2026-09-25.json",
+  "windows": "data/derived/nep/source-windows/iteration-03/windows.jsonl",
+  "reserved_test_groups": ["mit-801sc-f2016", "future-en-aviation", "future-ko-climate"],
+  "sampling": "Purpose-selected interactive states from the previously fixed 24 windows; not a natural edit-prevalence sample. No corrupted text or invented word timings.",
+  "families": {
+    "transcript_repair": {"priority": "P0", "purpose": "Repair supported recognition errors without guessing names, dialect or technical vocabulary.", "remaining": "Independent non-name errors, spacing and mixed-language repairs with preserve controls."},
+    "numbers_units_negation": {"priority": "P0", "purpose": "Preserve values and polarity; distinguish a supported display normalization from changing what was said.", "remaining": "Unit and negation contrasts from independent recordings."},
+    "transcript_vs_media": {"priority": "P0", "purpose": "Separate readable display-text cleanup from deletion of the corresponding sound.", "remaining": "Acoustically qualified media-deletion counterparts."},
+    "filler_function": {"priority": "P0", "purpose": "Distinguish removable hesitation from agreement, discourse structure and meaningful response.", "remaining": "Qualified positive filler cuts with explicit intent, especially English conversation."},
+    "repetition_self_repair": {"priority": "P0", "purpose": "Distinguish accidental disfluency from emphasis, teaching repetition and changes of meaning.", "remaining": "Qualified removable spoken repetitions and factual self-repairs."},
+    "pacing_roles": {"priority": "P0", "purpose": "Select pauses by threshold and role, then apply a separately specified retained duration.", "remaining": "Natural positive and preserve pairs with reliable speech/activity evidence and varied durations."},
+    "acoustic_preservation": {"priority": "P0", "purpose": "Keep breaths, overlap and phonemes intact while removing only verified unwanted audio.", "remaining": "Independent acoustic boundary evidence. Word/ASR gaps and amplitude thresholds alone are insufficient."},
+    "caption_segmentation": {"priority": "P0", "purpose": "Improve caption grouping while preserving complete text, speaker and media intervals.", "remaining": "Long-paragraph runtime support and exported-cue integration checks; current source cases are executable reference candidates."}
+  },
+  "window_decisions": {
+    "mit-6006-s2020-lecture01": [
+      {"families": ["caption_segmentation", "repetition_self_repair"], "decision": "admit_selected", "reason": "A short continuation can be joined to its preceding caption; repeated problem/algorithm questions serve distinct definitions."},
+      {"families": ["repetition_self_repair", "pacing_roles"], "decision": "source_only", "reason": "Repeated algorithm requirements and arbitrary-input sizes are meaningful; a false start needs acoustic and intent evidence before a cut."},
+      {"families": ["filler_function", "caption_segmentation"], "decision": "source_only", "reason": "Explicit student/lecturer turns and an agreement response are useful. The apparent 'S here's' typo is not a verified spoken-word error."},
+      {"families": ["numbers_units_negation", "pacing_roles"], "decision": "source_only", "reason": "Zero is the deliberate base-case answer; the long inter-cue gap is not certified dead air."},
+      {"families": ["repetition_self_repair", "numbers_units_negation"], "decision": "source_only", "reason": "The performance/time/operations contrast carries the lesson; terminology repetition alone is not a cut target."},
+      {"families": ["transcript_repair", "repetition_self_repair"], "decision": "source_only", "reason": "Word-RAM and growth-rate discussion require domain faithfulness. Do not fact-correct the lecturer or add another lexical template."}
+    ],
+    "mit-1806-s2010-lecture01": [
+      {"families": ["numbers_units_negation", "transcript_repair"], "decision": "admit_selected", "reason": "The board shows a plus sign omitted in the publisher caption. The inspected board text is supplied explicitly to the text-only predictor."},
+      {"families": ["numbers_units_negation", "repetition_self_repair"], "decision": "source_only", "reason": "Repeated coordinates are worked examples, not redundant recognition output."},
+      {"families": ["pacing_roles", "repetition_self_repair"], "decision": "source_only", "reason": "Column combinations and drawing time make deletion ambiguous; retain as a visual-activity candidate."},
+      {"families": ["numbers_units_negation", "pacing_roles"], "decision": "source_only", "reason": "Coordinate choices and deictic board references require matched visual context, not inferred equation edits."},
+      {"families": ["numbers_units_negation", "caption_segmentation"], "decision": "source_only", "reason": "The zero-zero-one example is intentional. The excerpt ends within an utterance; do not label the crop as a speaker error."},
+      {"families": ["transcript_repair", "repetition_self_repair"], "decision": "source_only", "reason": "Colloquial explanation of singularity and nine dimensions should not be rewritten as formal prose."}
+    ],
+    "sedong": [
+      {"families": ["filler_function", "transcript_repair"], "decision": "source_only", "reason": "Names/products and agreement turns are present; extra name substitutions would add little to existing coverage."},
+      {"families": ["transcript_repair", "filler_function"], "decision": "admit_selected", "reason": "A visible string-telephone label supports a real ASR correction; the neighboring agreement repetition supplies a distinct preservation decision."},
+      {"families": ["repetition_self_repair", "numbers_units_negation"], "decision": "source_only", "reason": "Flow-chart repetition and uncertain spoken ratios are not reliable edit references without further evidence."},
+      {"families": ["transcript_repair", "repetition_self_repair"], "decision": "source_only", "reason": "The neuron story includes informal quoted speech and possible errors, but no uniquely justified correction was established."},
+      {"families": ["numbers_units_negation", "transcript_repair"], "decision": "source_only", "reason": "Binary values, weights and historical terms need reference evidence; avoid guessed spelling/fact normalization."},
+      {"families": ["numbers_units_negation", "caption_segmentation"], "decision": "admit_selected", "reason": "The diagram confirms a negative weight. Math-display and verbatim purposes warrant different outcomes; a separate short paragraph supports a caption split."}
+    ],
+    "shuka": [
+      {"families": ["repetition_self_repair", "pacing_roles"], "decision": "admit_selected", "reason": "Rhetorical repetition adds emphasis. Multi-second gaps are candidates for audio inspection, not verified silence."},
+      {"families": ["repetition_self_repair", "numbers_units_negation"], "decision": "source_only", "reason": "Buy/sell reversals and rhetorical correction change meaning; a generic duplicate-removal rule would be unsafe."},
+      {"families": ["numbers_units_negation", "transcript_repair"], "decision": "source_only", "reason": "Flow totals and technical terms have no independently established correction; this is not a financial fact-checking task."},
+      {"families": ["transcript_vs_media", "acoustic_preservation", "repetition_self_repair"], "decision": "admit_selected", "reason": "A word-initial hesitation can be removed from display text while keeping audio. A cut inside that timed word is unsupported; uncertainty wording must remain."},
+      {"families": ["numbers_units_negation", "transcript_repair"], "decision": "source_only", "reason": "Fund sizes, age, leverage and proper nouns are not corrected from plausibility alone."},
+      {"families": ["repetition_self_repair", "numbers_units_negation"], "decision": "source_only", "reason": "Quoted market claims and rumor attribution must stay attached to their speakers. No extra abstention row is needed for a near-duplicate preservation lesson."}
+    ]
+  },
+  "cases": [
+    {
+      "id": "source-ko-string-telephone", "source_id": "sedong", "window": 2,
+      "scenario_family": "transcript_repair", "focus_seconds": 222.74,
+      "brief": "커서 주변의 명백한 인식 오류 하나를 표시 텍스트에서 수정하세요. 음성은 보존하세요. 이 장면에서 검토자가 확인한 그림의 표기는 '실전화기'이며, 두 종이컵을 실로 연결한 물건입니다. 조사와 문장 형식은 유지하세요.",
+      "action": "correct_text", "target_start": 220.84, "target_end": 221.36, "text": "실전화기라고",
+      "alternative_targets": [{"start_seconds": 221.88, "text": "실전화기라고."}],
+      "purpose": "그림의 용어를 근거로 실제 인식 오류 수정", "decision_factor": "모델에도 제공한 장면의 표기와 주변 질문",
+      "adds_coverage": "Natural ASR error with explicit visual-to-text evidence; one example only, not repeated lexical siblings.",
+      "evidence": [{"file": "sedong-string-telephone.jpg", "seconds": 222, "observation": "실전화기 label and two cups connected by a string"}]
+    },
+    {
+      "id": "source-ko-negative-weight-display", "source_id": "sedong", "window": 6,
+      "scenario_family": "numbers_units_negation", "focus_seconds": 949.88,
+      "brief": "수학 설명용 자막입니다. 커서 직전의 가중치 표현은 변수 W와 숫자로 간결하게 표기하되 조사와 음성은 유지하세요. 검토자가 이 장면의 회로도에서 확인한 값은 -1.5입니다. 마이너스 부호를 빠뜨리거나 값을 바꾸지 마세요.",
+      "action": "correct_text", "target_start": 947.44, "target_end": 948.58, "text": "W -1.5는",
+      "purpose": "발화의 수치와 부호를 유지하는 자막 표기 정리", "decision_factor": "수학 표기 목적과 모델에 제공한 -1.5 근거",
+      "adds_coverage": "Multi-item spoken-number normalization including real intervening gaps; no media deletion.",
+      "evidence": [{"file": "sedong-negative-weight.jpg", "seconds": 950, "observation": "Circuit diagram labels the bias connection -1.5"}]
+    },
+    {
+      "id": "source-ko-negative-weight-verbatim", "source_id": "sedong", "window": 6,
+      "scenario_family": "numbers_units_negation", "focus_seconds": 949.88,
+      "brief": "축어록을 검토합니다. 커서 주변의 숫자와 변수는 발화된 한글 표기를 유지하세요. 수학 기호로 바꾸는 표기 정리는 원하지 않습니다. 검토자가 이 장면의 회로도에서 확인한 값은 -1.5이며, '더블유 마이너스 일점오는'은 그 값과 일치합니다.",
+      "action": "no_action", "purpose": "동일한 발화를 축어록 목적에서 보존", "decision_factor": "수학 표시용 자막과 다른 명시적 전달 목적",
+      "adds_coverage": "Deliberate purpose counterfactual; unchanged natural content and timing, genuinely different decision.",
+      "evidence": [{"file": "sedong-negative-weight.jpg", "seconds": 950, "observation": "Circuit diagram labels the bias connection -1.5"}]
+    },
+    {
+      "id": "source-ko-agreement-turn", "source_id": "sedong", "window": 2,
+      "scenario_family": "filler_function", "focus_seconds": 212,
+      "brief": "대화의 표시 텍스트를 검토합니다. 실제 응답과 강조는 유지하고 인식기가 잘못 복제한 것으로 확인된 말만 정리하세요. 커서 주변의 '맞아요'는 앞 화자의 말에 동의하는 응답입니다. 동의 표현을 군더더기라는 이유만으로 지우지 마세요. 음성은 보존하세요.",
+      "action": "no_action", "purpose": "동의 응답과 대화의 연결 보존", "decision_factor": "다른 화자의 발언에 이어지는 응답 기능",
+      "adds_coverage": "A meaningful backchannel, distinct from an isolated hesitation token."
+    },
+    {
+      "id": "source-ko-caption-final-sentence", "source_id": "sedong", "window": 6,
+      "scenario_family": "caption_segmentation", "focus_seconds": 944.56,
+      "brief": "커서가 있는 자막 문단의 마지막 독립 문장 앞에 경계를 추가하세요. 각 결과 문단에 최소 1초의 표시 시간이 있고 텍스트가 남아 있어야 합니다. 단어, 화자, 음성 구간은 바꾸지 마세요. 문자 수에 따른 추가 자동 분할은 사용하지 않는 편집 상태입니다.",
+      "action": "split_paragraph", "target_start": 945.18,
+      "purpose": "짧은 설명 문단의 마지막 독립 문장을 별도 자막으로 표시", "decision_factor": "완전히 보이는 문단과 독립 문장, 양쪽의 충분한 길이",
+      "adds_coverage": "Natural ASR paragraph split with actual item timing; not a synthetic fixed-duration sentence."
+    },
+    {
+      "id": "source-en-caption-continuation", "source_id": "mit-6006-s2020-lecture01", "window": 1,
+      "scenario_family": "caption_segmentation", "focus_seconds": 137.94,
+      "brief": "Join the caption at the cursor to the previous caption when it completes the same sentence spoken by the same person. For this presentation use at most 84 characters and 7 seconds per joined caption. Preserve all words and audio; automatic character-based export splitting is off.",
+      "action": "merge_paragraph", "target_start": 137.94,
+      "purpose": "한 문장을 나눈 짧은 인접 자막의 연결", "decision_factor": "같은 화자의 문장 연결과 길이 제한",
+      "adds_coverage": "Publisher cue timing retained as cue-sized items; no fabricated per-word alignment."
+    },
+    {
+      "id": "source-en-distinct-teaching-questions", "source_id": "mit-6006-s2020-lecture01", "window": 1,
+      "scenario_family": "repetition_self_repair", "focus_seconds": 189,
+      "brief": "Review the transcript near the cursor for accidental duplication. Preserve separate questions that introduce different concepts, teaching repetition, and the speaker's wording. Edit the displayed text only when a duplication error is established.",
+      "action": "no_action", "purpose": "문제와 알고리즘을 각각 소개하는 질문 보존", "decision_factor": "비슷한 문장 형식이지만 서로 다른 질문",
+      "adds_coverage": "Repetition of a rhetorical pattern is not duplicate content."
+    },
+    {
+      "id": "source-en-equation-missing-plus", "source_id": "mit-1806-s2010-lecture01", "window": 1,
+      "scenario_family": "numbers_units_negation", "focus_seconds": 162,
+      "brief": "Correct a clear transcription omission in the equation at the cursor, preserving the audio. The reviewer checked the board for this example: the two equations are 2x - y = 0 and -x + 2y = 3. Use these equations as the reference; do not change the numbers or negate a term.",
+      "action": "correct_text", "target_start": 158.29, "target_end": 165.35, "text": "And -x + 2y = 3.",
+      "purpose": "화면의 수식을 근거로 빠진 연산 부호 복구", "decision_factor": "모델에도 제공한 칠판의 + 부호",
+      "adds_coverage": "Natural publisher-caption omission, distinct from fabricated ASR noise and numerical formatting.",
+      "evidence": [{"file": "mit1806-equations-clear.jpg", "seconds": 176, "observation": "Board shows 2x - y = 0 and -x + 2y = 3"}]
+    },
+    {
+      "id": "source-ko-hesitation-text-only", "source_id": "shuka", "window": 4,
+      "scenario_family": "transcript_vs_media", "focus_seconds": 1347.024,
+      "brief": "읽기 편한 표시용 자막을 만듭니다. 커서의 단어 맨 앞에 붙은 말더듬 조각은 표시 텍스트에서만 정리하세요. 완성된 단어와 조사는 유지하고 원래 음성, 단어 구간, 말투는 보존하세요. 음성에서 일부 음절을 잘라내는 요청이 아닙니다.",
+      "action": "correct_text", "target_start": 1347.024, "target_end": 1347.844, "text": "음모론도",
+      "purpose": "한 단어 안의 주저 조각을 자막에서만 정리", "decision_factor": "텍스트 정리 목적과 음성 보존 요구",
+      "adds_coverage": "Real word-initial disfluency; tests the distinction between text replacement and an unsupported within-word audio cut."
+    },
+    {
+      "id": "source-ko-rhetorical-emphasis", "source_id": "shuka", "window": 1,
+      "scenario_family": "repetition_self_repair", "focus_seconds": 155.12,
+      "brief": "발표자의 표현과 강조를 유지하는 자막을 검토합니다. 인식기가 잘못 복제한 근거가 있는 말만 정리하고, 말투를 평이한 문장으로 다시 쓰지는 마세요. 반복된 어구가 설명과 감정을 강조한다면 보존하세요.",
+      "action": "no_action", "purpose": "감정과 설명을 강조하는 반복 보존", "decision_factor": "설명이 사이에 끼어 있는 수사적 반복과 복제 오류의 차이",
+      "adds_coverage": "Natural multi-word emphasis, unlike a synthetic immediately duplicated article."
+    },
+    {
+      "id": "source-ko-uncertainty-qualifier", "source_id": "shuka", "window": 4,
+      "scenario_family": "repetition_self_repair", "focus_seconds": 1358.124,
+      "brief": "화자의 주장과 불확실성을 충실하게 담는 축어록입니다. 커서 주변에서 말을 고친 흔적, '아니라' 같은 부정과 '사람마다 다르게 얘기하고 있는 것 같아요' 같은 유보를 보존하세요. 발화 사실을 확인하는 작업이지 주장의 진위를 교정하거나 단정적인 문장으로 바꾸는 작업이 아닙니다.",
+      "action": "no_action", "purpose": "자기 수정과 불확실성 표현의 의미 보존", "decision_factor": "주장의 확실성 정도를 바꾸는 편집의 위험",
+      "adds_coverage": "A factual qualification rather than repeated filler; no financial truth label is asserted."
+    }
+  ]
+}

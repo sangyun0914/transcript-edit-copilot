@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "question": "Can a short adapter experiment improve evidence-supported terminology corrections without editing clean, protected or intentionally retained wording?",
+  "feedback": "Inspect available evidence autonomously; represent the reason to edit or abstain in the observable brief/history. Do not copy human-reviewed answers.",
+  "source_group": {"id": "sedong-local-calibration", "split": "train", "project_sha256": "b82cf665897771b61d2fb4415ff90d8ec9d9c400f3ce23c7fd6d7de3636441db"},
+  "training_terms": [
+    {"canonical": "인공지능", "variant": "인공지늠"},
+    {"canonical": "컴퓨터", "variant": "컴퓨타"},
+    {"canonical": "딥러닝", "variant": "딥러닝깅"},
+    {"canonical": "뉴런", "variant": "뉴론"}
+  ],
+  "development_scenarios": [
+    {"group": "synthetic-food-01", "canonical": "초콜릿", "variant": "쵸콜릿", "context": ["오늘은", "맛을", "비교합니다."]},
+    {"group": "synthetic-travel-01", "canonical": "케이블카", "variant": "케이블카아", "context": ["이번에는", "노선을", "소개합니다."]},
+    {"group": "synthetic-photo-01", "canonical": "렌즈", "variant": "렌쯔", "context": ["새로운", "제품을", "시험합니다."]}
+  ],
+  "variants": ["history_supported", "brief_supported", "already_correct", "protected", "verbatim"]
+}

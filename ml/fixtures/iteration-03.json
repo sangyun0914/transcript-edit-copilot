@@ -1,0 +1,601 @@
+{
+  "version": 1,
+  "question": "Can English/Korean next-edit prediction use executed history to resolve ambiguous names, choose an unselected target in a longer passage, and retain other actions without overcorrection?",
+  "retained_manifest_sha256": "eaa30d3468ec7364620df6e57cc5ce33e46ae9f776f75e43abfbe80e2c5b0510",
+  "scope": "Independent AI-authored diagnostic scripts, not transcripts of downloaded lectures. Timing is symbolic and cannot qualify real audio cuts.",
+  "authoring": "Agent-authored domain scripts and deterministic scenario generation; no human reference labels or future actions in predictor input.",
+  "reserved_test_groups": [
+    "mit-801sc-f2016",
+    "future-en-aviation",
+    "future-ko-climate"
+  ],
+  "groups": [
+    {
+      "id": "en-robotics-lab",
+      "split": "train",
+      "language": "en",
+      "domain": "robotics",
+      "name": "Mira",
+      "canonical": "Meera",
+      "alternate": "Myra",
+      "foil": "Kira",
+      "passage": [
+        "Before",
+        "the",
+        "test,",
+        "{foil}",
+        "checks",
+        "the",
+        "battery.",
+        "{name}",
+        "records",
+        "the",
+        "gripper",
+        "response."
+      ],
+      "background": [
+        "The team compares two prototypes on the workbench.",
+        "A loose connector delayed yesterday's test.",
+        "They repeat each movement at low speed.",
+        "The next meeting covers the remaining measurements."
+      ],
+      "typo": "callibration",
+      "correct": "calibration",
+      "typo_passage": [
+        "The",
+        "{typo}",
+        "record",
+        "belongs",
+        "to",
+        "this",
+        "sensor."
+      ],
+      "sentences": [
+        "The arm has stopped.",
+        "We can check the measurements."
+      ],
+      "fragment": [
+        "The sensor on the left",
+        "needs another measurement."
+      ],
+      "filler": "um"
+    },
+    {
+      "id": "en-museum-tour",
+      "split": "train",
+      "language": "en",
+      "domain": "museum conservation",
+      "name": "Neri",
+      "canonical": "Nery",
+      "alternate": "Nerri",
+      "foil": "Teri",
+      "passage": [
+        "This",
+        "case",
+        "holds",
+        "the",
+        "older",
+        "map.",
+        "{name}",
+        "describes",
+        "its",
+        "repairs",
+        "while",
+        "{foil}",
+        "checks",
+        "the",
+        "light."
+      ],
+      "background": [
+        "The guide starts in the restored gallery.",
+        "Some visitors ask about the paper behind the glass.",
+        "A later display uses a different material.",
+        "The tour continues after a short discussion."
+      ],
+      "typo": "preservaton",
+      "correct": "preservation",
+      "typo_passage": [
+        "The",
+        "{typo}",
+        "team",
+        "examines",
+        "the",
+        "paper."
+      ],
+      "sentences": [
+        "The display is ready.",
+        "Please follow the guide upstairs."
+      ],
+      "fragment": [
+        "The label beside the map",
+        "describes the repair."
+      ],
+      "filler": "uh"
+    },
+    {
+      "id": "en-transit-interview",
+      "split": "train",
+      "language": "en",
+      "domain": "public transport",
+      "name": "Lena",
+      "canonical": "Leena",
+      "alternate": "Lina",
+      "foil": "Tina",
+      "passage": [
+        "{foil}",
+        "compares",
+        "two",
+        "routes,",
+        "and",
+        "the",
+        "planner",
+        "{name}",
+        "explains",
+        "the",
+        "weekday",
+        "timetable."
+      ],
+      "background": [
+        "The interview concerns changes at a neighborhood station.",
+        "Passengers have asked for a clearer map.",
+        "The discussion also covers crowded platforms.",
+        "A public meeting will collect further observations."
+      ],
+      "typo": "accessibilty",
+      "correct": "accessibility",
+      "typo_passage": [
+        "The",
+        "station",
+        "review",
+        "includes",
+        "{typo}",
+        "information."
+      ],
+      "sentences": [
+        "The first train has arrived.",
+        "We will discuss the bus connection next."
+      ],
+      "fragment": [
+        "The bus stop near the bridge",
+        "will remain open."
+      ],
+      "filler": "erm"
+    },
+    {
+      "id": "en-sports-workshop",
+      "split": "train",
+      "language": "en",
+      "domain": "sports coaching",
+      "name": "Arin",
+      "canonical": "Aryn",
+      "alternate": "Arrin",
+      "foil": "Erin",
+      "passage": [
+        "During",
+        "the",
+        "review,",
+        "coach",
+        "{name}",
+        "watches",
+        "the",
+        "replay",
+        "with",
+        "{foil}",
+        "and",
+        "the",
+        "team."
+      ],
+      "background": [
+        "The group reviews practice footage before the next session.",
+        "One camera was positioned near the scoreboard.",
+        "The participants compare their observations in pairs.",
+        "A final discussion covers the training schedule."
+      ],
+      "typo": "coordnation",
+      "correct": "coordination",
+      "typo_passage": [
+        "This",
+        "exercise",
+        "tests",
+        "{typo}",
+        "between",
+        "teammates."
+      ],
+      "sentences": [
+        "The practice has ended.",
+        "Let us watch the final attempt."
+      ],
+      "fragment": [
+        "The player near the goal",
+        "starts the next exercise."
+      ],
+      "filler": "um"
+    },
+    {
+      "id": "ko-photo-workshop",
+      "split": "train",
+      "language": "ko",
+      "domain": "photography",
+      "name": "서린",
+      "canonical": "서림",
+      "alternate": "서림이",
+      "foil": "수린",
+      "passage": [
+        "이번",
+        "실습에서는",
+        "{foil}",
+        "작가가",
+        "조명을",
+        "조절하고",
+        "{name}",
+        "작가가",
+        "렌즈의",
+        "초점을",
+        "확인합니다."
+      ],
+      "background": [
+        "참가자들은 같은 장면을 다른 거리에서 촬영했습니다.",
+        "창문 쪽의 빛이 조금씩 바뀌고 있습니다.",
+        "완성된 사진을 나란히 놓고 비교합니다.",
+        "다음 순서에서는 촬영 위치를 옮길 예정입니다."
+      ],
+      "typo": "촛점",
+      "correct": "초점",
+      "typo_passage": [
+        "이",
+        "사진은",
+        "렌즈의",
+        "{typo}",
+        "위치를",
+        "다르게",
+        "설정했습니다."
+      ],
+      "sentences": [
+        "첫 번째 촬영이 끝났습니다.",
+        "이제 조명의 위치를 바꾸겠습니다."
+      ],
+      "fragment": [
+        "창가에 놓인 카메라는",
+        "삼각대에 고정되어 있습니다."
+      ],
+      "filler": "음"
+    },
+    {
+      "id": "ko-baking-class",
+      "split": "train",
+      "language": "ko",
+      "domain": "baking",
+      "name": "지안",
+      "canonical": "지완",
+      "alternate": "지환",
+      "foil": "지현",
+      "passage": [
+        "반죽을",
+        "비교할",
+        "때",
+        "{name}",
+        "강사가",
+        "질감을",
+        "설명하고",
+        "{foil}",
+        "강사는",
+        "오븐을",
+        "살펴봅니다."
+      ],
+      "background": [
+        "작업대에는 서로 다른 밀가루가 놓여 있습니다.",
+        "참가자들이 조리 과정을 차례로 설명합니다.",
+        "완성된 빵은 충분히 식힌 뒤에 비교합니다.",
+        "수업의 마지막에는 질문을 받습니다."
+      ],
+      "typo": "발효오",
+      "correct": "발효",
+      "typo_passage": [
+        "반죽의",
+        "{typo}",
+        "시간을",
+        "기록해",
+        "두었습니다."
+      ],
+      "sentences": [
+        "반죽을 모두 나누었습니다.",
+        "다음에는 모양을 잡겠습니다."
+      ],
+      "fragment": [
+        "왼쪽 그릇에 담긴 반죽은",
+        "아직 모양을 잡지 않았습니다."
+      ],
+      "filler": "어"
+    },
+    {
+      "id": "ko-economics-talk",
+      "split": "train",
+      "language": "ko",
+      "domain": "economics discussion",
+      "name": "혜린",
+      "canonical": "해린",
+      "alternate": "혜림",
+      "foil": "예린",
+      "passage": [
+        "진행자는",
+        "앞선",
+        "질문을",
+        "정리합니다.",
+        "{foil}",
+        "연구원에",
+        "이어",
+        "{name}",
+        "연구원이",
+        "자료를",
+        "설명합니다."
+      ],
+      "background": [
+        "대화에서는 자료에 표시된 기간을 먼저 확인했습니다.",
+        "서로 다른 표를 직접 비교하기는 어렵습니다.",
+        "참가자들은 용어가 쓰인 맥락을 구분합니다.",
+        "마지막 발언에서는 남은 질문을 정리합니다."
+      ],
+      "typo": "지푶",
+      "correct": "지표",
+      "typo_passage": [
+        "이",
+        "{typo}",
+        "자료의",
+        "기간을",
+        "먼저",
+        "확인하겠습니다."
+      ],
+      "sentences": [
+        "첫 번째 표를 확인했습니다.",
+        "다음 표는 기간이 다릅니다."
+      ],
+      "fragment": [
+        "화면 오른쪽에 표시한 수치는",
+        "같은 기간의 자료입니다."
+      ],
+      "filler": "음"
+    },
+    {
+      "id": "ko-marine-interview",
+      "split": "train",
+      "language": "ko",
+      "domain": "marine fieldwork",
+      "name": "나래",
+      "canonical": "나레",
+      "alternate": "나라",
+      "foil": "다래",
+      "passage": [
+        "{name}",
+        "조사원이",
+        "해안의",
+        "사진을",
+        "정리하는",
+        "동안",
+        "{foil}",
+        "조사원은",
+        "관찰",
+        "기록을",
+        "확인합니다."
+      ],
+      "background": [
+        "조사팀은 같은 장소를 여러 차례 방문했습니다.",
+        "바람이 강한 날에는 녹음 상태가 달랐습니다.",
+        "현장 노트에는 관찰 시각이 함께 적혀 있습니다.",
+        "인터뷰는 다음 조사 계획으로 이어집니다."
+      ],
+      "typo": "관찱",
+      "correct": "관찰",
+      "typo_passage": [
+        "이번",
+        "{typo}",
+        "기록에는",
+        "사진의",
+        "시각도",
+        "적었습니다."
+      ],
+      "sentences": [
+        "오늘의 조사가 끝났습니다.",
+        "이제 기록을 함께 확인하겠습니다."
+      ],
+      "fragment": [
+        "해안에서 촬영한 사진은",
+        "날짜별로 정리했습니다."
+      ],
+      "filler": "어"
+    },
+    {
+      "id": "en-astronomy-meeting",
+      "split": "dev",
+      "language": "en",
+      "domain": "astronomy",
+      "name": "Elin",
+      "canonical": "Elyn",
+      "alternate": "Ellen",
+      "foil": "Erin",
+      "passage": [
+        "After",
+        "{foil}",
+        "summarizes",
+        "the",
+        "weather,",
+        "observer",
+        "{name}",
+        "presents",
+        "the",
+        "nightly",
+        "log."
+      ],
+      "background": [
+        "The group meets after a night at the observatory.",
+        "Some images show a bright foreground reflection.",
+        "The presenter separates these from the later observations.",
+        "Questions about the next session come at the end."
+      ],
+      "typo": "observaton",
+      "correct": "observation",
+      "typo_passage": [
+        "This",
+        "{typo}",
+        "appears",
+        "in",
+        "the",
+        "nightly",
+        "log."
+      ],
+      "sentences": [
+        "The first exposure is complete.",
+        "We will review the next image."
+      ],
+      "fragment": [
+        "The telescope near the entrance",
+        "is ready for inspection."
+      ],
+      "filler": "uh"
+    },
+    {
+      "id": "en-archaeology-podcast",
+      "split": "dev",
+      "language": "en",
+      "domain": "archaeology",
+      "name": "Nora",
+      "canonical": "Norah",
+      "alternate": "Noura",
+      "foil": "Cora",
+      "passage": [
+        "The",
+        "host",
+        "asks",
+        "{name}",
+        "about",
+        "the",
+        "field",
+        "notes",
+        "before",
+        "turning",
+        "to",
+        "{foil}."
+      ],
+      "background": [
+        "The discussion follows a field team's daily notes.",
+        "A guest explains how the photographs were organized.",
+        "Several labels need to be compared with the original notebook.",
+        "The episode ends with questions about the archive."
+      ],
+      "typo": "stratigrahy",
+      "correct": "stratigraphy",
+      "typo_passage": [
+        "The",
+        "field",
+        "report",
+        "describes",
+        "the",
+        "site's",
+        "{typo}."
+      ],
+      "sentences": [
+        "We have reviewed the notebook.",
+        "The photographs tell another part of the story."
+      ],
+      "fragment": [
+        "The label attached to the box",
+        "matches the field record."
+      ],
+      "filler": "um"
+    },
+    {
+      "id": "ko-architecture-review",
+      "split": "dev",
+      "language": "ko",
+      "domain": "architecture",
+      "name": "유나",
+      "canonical": "윤아",
+      "alternate": "윤하",
+      "foil": "유리",
+      "passage": [
+        "검토를",
+        "마친",
+        "{foil}",
+        "설계사에",
+        "이어",
+        "{name}",
+        "설계사가",
+        "건물의",
+        "동선을",
+        "소개합니다."
+      ],
+      "background": [
+        "발표자는 처음 계획과 수정안을 함께 보여 줍니다.",
+        "도면의 색은 이동 경로를 구분하기 위한 것입니다.",
+        "청중이 출입구의 위치에 관해 질문합니다.",
+        "다음 발표에서는 다른 건물을 살펴봅니다."
+      ],
+      "typo": "동썬",
+      "correct": "동선",
+      "typo_passage": [
+        "이",
+        "도면에서는",
+        "사람의",
+        "{typo}",
+        "변화를",
+        "비교합니다."
+      ],
+      "sentences": [
+        "첫 번째 도면을 살펴봤습니다.",
+        "이제 수정안을 보겠습니다."
+      ],
+      "fragment": [
+        "건물 뒤쪽으로 이어지는 통로는",
+        "이 도면에 표시했습니다."
+      ],
+      "filler": "음"
+    },
+    {
+      "id": "ko-music-rehearsal",
+      "split": "dev",
+      "language": "ko",
+      "domain": "music rehearsal",
+      "name": "세라",
+      "canonical": "새라",
+      "alternate": "세아",
+      "foil": "수라",
+      "passage": [
+        "합주가",
+        "끝나자",
+        "{name}",
+        "연주자가",
+        "{foil}",
+        "연주자와",
+        "마지막",
+        "부분의",
+        "호흡을",
+        "맞춰",
+        "봅니다."
+      ],
+      "background": [
+        "연습실에서는 같은 부분을 여러 번 연주했습니다.",
+        "지휘자는 악보에 적은 표시를 함께 확인합니다.",
+        "녹음된 소리를 듣고 각자의 의견을 말합니다.",
+        "다음 연습의 시작 지점을 정하고 마칩니다."
+      ],
+      "typo": "리드믐",
+      "correct": "리듬",
+      "typo_passage": [
+        "이",
+        "부분의",
+        "{typo}",
+        "변화를",
+        "다시",
+        "들어보겠습니다."
+      ],
+      "sentences": [
+        "첫 번째 합주가 끝났습니다.",
+        "잠시 뒤에 마지막 부분을 연습하겠습니다."
+      ],
+      "fragment": [
+        "악보에 표시한 마지막 부분은",
+        "다음 연습에서 확인하겠습니다."
+      ],
+      "filler": "어"
+    }
+  ]
+}

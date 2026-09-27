@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "question": "Can the unchanged Qwen3.5-2B training pipeline fit corrections and abstention controls after five passes over a small bilingual subset?",
+  "source_manifest_sha256": "b5bf8751914c77103de90862ca26bd1fef3a1f2ed1ca32fe0bec7a502e21995c",
+  "preference_recipe_sha256": "ae7223961095e3dd5beadb02d27534506db630451b5d60b92ac703a7aa657c08",
+  "train_groups": ["en-robotics-lab", "en-museum-tour", "ko-photo-workshop", "ko-baking-class"],
+  "train_scenarios": [
+    "history-relevant-short", "history-relevant-long", "clear-text-error",
+    "history-absent-short", "history-conflicting-short", "already-correct",
+    "split-caption", "merge-caption"
+  ],
+  "steps": 40,
+  "gradient_accumulation_steps": 4,
+  "scope": "Fit diagnostic, not a controlled attribution of improvement to balance versus repetition. Reuses existing training groups and targets; all 111 prior development cases plus 64 new pause cases stay development-only. All seven actions remain in the contract and regression evaluation. No sealed test or real media is used.",
+  "decision": {
+    "fit_goal": "All 12 corrections, 12 abstentions and 8 caption edits match in training before expanding the corpus. Report each cohort even when the goal fails.",
+    "if_fit_fails": "Inspect per-example teacher-forced loss, action-token likelihood and optimization before generating more examples.",
+    "if_fit_succeeds": "Inspect transfer to different development scripts, missing/conflicting evidence, caption language failures, multi-item regressions and the untouched pause-preference diagnostic. Fit alone does not authorize promotion.",
+    "promotion": false
+  }
+}

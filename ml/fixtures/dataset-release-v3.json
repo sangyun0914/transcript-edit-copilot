@@ -1,0 +1,2713 @@
+{
+  "version": "nep-release-v1-recipe-8-d4-audit",
+  "status": "draft_pending_independent_admission",
+  "source_recipe": "ml/fixtures/source-qualification-v1.json",
+  "retain_existing_references": true,
+  "new_script_groups": [
+    {
+      "id": "authored-en-location-audio-tutorial-v1",
+      "split": "train"
+    },
+    {
+      "id": "authored-ko-field-interview-v1",
+      "split": "dev"
+    }
+  ],
+  "cases": [
+    {
+      "id": "release-ko-first-virtue-spacing",
+      "source_id": "sedong",
+      "window": 1,
+      "focus_seconds": 87.4,
+      "scenario_ids": [
+        "R03",
+        "R04"
+      ],
+      "brief": "대화 자막을 검토하세요. 명백한 띄어쓰기 오류 하나만 고치고 말투, 조사, 강조와 원래 음성을 보존하세요. 단어를 합칠 때 단어 사이의 원본 시간도 모두 남겨야 합니다.",
+      "action": "correct_text",
+      "decision_factor": "제 일 덕목은에서 제와 일이 하나의 제일을 잘못 나눈 실제 ASR 표기이며, 두 timed words와 intervening gap을 함께 교정한다.",
+      "adds_coverage": "제 일 덕목은에서 제와 일이 하나의 제일을 잘못 나눈 실제 ASR 표기이며, 두 timed words와 intervening gap을 함께 교정한다.",
+      "stratum": "open_next_edit",
+      "label_status": "known_edit",
+      "parent_episode_id": "sedong-window-1",
+      "preservation": [
+        "All original source intervals",
+        "Unrelated transcript text",
+        "Original language and speaker attribution"
+      ],
+      "target_start": 87.06,
+      "target_end": 87.28,
+      "text": "제일"
+    },
+    {
+      "id": "release-en-ram-context-repair",
+      "source_id": "mit-6006-s2020-lecture01",
+      "window": 6,
+      "focus_seconds": 2244.15,
+      "scenario_ids": [
+        "R02"
+      ],
+      "brief": "Review the lecture captions for a clear recognition error, using terminology established in the visible explanation. Preserve the lecturer’s wording and audio. Do not expand every acronym or change a normal word merely because it sounds like an acronym.",
+      "action": "correct_text",
+      "decision_factor": "A controlled homophone corruption conflicts with the nearby Word RAM occurrence and the spoken expansion Random access memory. The private original cue is not supplied to the predictor.",
+      "adds_coverage": "A controlled homophone corruption conflicts with the nearby Word RAM occurrence and the spoken expansion Random access memory. The private original cue is not supplied to the predictor.",
+      "stratum": "open_next_edit",
+      "label_status": "known_edit",
+      "parent_episode_id": "mit-6006-s2020-lecture01-window-6",
+      "preservation": [
+        "All original source intervals",
+        "Unrelated transcript text",
+        "Original language and speaker attribution"
+      ],
+      "target_start": 2244.15,
+      "target_end": 2250.72,
+      "text": "called a word RAM, which we use for its theoretical brevity.",
+      "corruption": {
+        "start": 2244.15,
+        "original": "called a word RAM, which we use for its theoretical brevity.",
+        "replacement": "called a word lamb, which we use for its theoretical brevity."
+      },
+      "alternative_targets": [
+        {
+          "start_seconds": 2244.15,
+          "text": "called a Word RAM, which we use for its theoretical brevity."
+        }
+      ]
+    },
+    {
+      "id": "release-en-ram-original-preserve",
+      "source_id": "mit-6006-s2020-lecture01",
+      "window": 6,
+      "focus_seconds": 2244.15,
+      "scenario_ids": [
+        "R02"
+      ],
+      "brief": "Review the lecture captions for a clear recognition error, using terminology established in the visible explanation. Preserve the lecturer’s wording and audio. Do not expand every acronym or change a normal word merely because it sounds like an acronym.",
+      "action": "no_action",
+      "decision_factor": "The original word RAM cue agrees with the repeated term and expansion; capitalization preference alone is not a useful edit.",
+      "adds_coverage": "The original word RAM cue agrees with the repeated term and expansion; capitalization preference alone is not a useful edit.",
+      "stratum": "open_next_edit",
+      "label_status": "known_preserve",
+      "parent_episode_id": "mit-6006-s2020-lecture01-window-6",
+      "preservation": [
+        "All original source intervals",
+        "Unrelated transcript text",
+        "Original language and speaker attribution"
+      ]
+    },
+    {
+      "id": "release-en-hypothetical-with-segmentation-repair",
+      "source_id": "mit-6006-s2020-lecture01",
+      "window": 2,
+      "focus_seconds": 505.98,
+      "scenario_ids": [
+        "R04",
+        "N02",
+        "N04"
+      ],
+      "brief": "Check the displayed transcript for recognition mistakes while keeping hypothetical examples, approximations and the speaker’s spoken number format. Do not fact-check a claim or convert its units. Preserve the audio.",
+      "action": "correct_text",
+      "decision_factor": "In right away of checking, the visible continuation supports splitting away into a way while retaining the discourse right. Both comma and question-mark boundaries are acceptable. The hypothetical class sizes remain unchanged.",
+      "adds_coverage": "Repair a real publisher-caption word-joining error while keeping surprising hypothetical numbers; a numeric-preservation target is not a whole-context abstention when another clear repair is visible.",
+      "stratum": "open_next_edit",
+      "label_status": "known_edit",
+      "parent_episode_id": "mit-6006-s2020-lecture01-window-2",
+      "preservation": [
+        "All original source intervals",
+        "Unrelated transcript text",
+        "Original language and speaker attribution"
+      ],
+      "target_start": 446.07,
+      "target_end": 449.04,
+      "text": "I want a deterministic algorithm, right, a way",
+      "acceptable_actions": [
+        {
+          "action": "correct_text",
+          "target_start": 446.07,
+          "text": "I want a deterministic algorithm, right? A way"
+        }
+      ],
+      "required_visible_text": [
+        "of checking whether"
+      ]
+    },
+    {
+      "id": "release-en-algorithm-requirements",
+      "source_id": "mit-6006-s2020-lecture01",
+      "window": 2,
+      "focus_seconds": 486,
+      "scenario_ids": [
+        "S02"
+      ],
+      "brief": "Review this explanation for accidentally duplicated text. Keep repetition that introduces a different constraint, example or teaching point, and preserve the speaker’s wording and audio.",
+      "action": "no_action",
+      "decision_factor": "Repeated I want an algorithm statements add distinct constraints: another classroom, the preceding class and arbitrarily sized input.",
+      "adds_coverage": "Repeated I want an algorithm statements add distinct constraints: another classroom, the preceding class and arbitrarily sized input.",
+      "stratum": "open_next_edit",
+      "label_status": "known_preserve",
+      "parent_episode_id": "mit-6006-s2020-lecture01-window-2",
+      "preservation": [
+        "All original source intervals",
+        "Unrelated transcript text",
+        "Original language and speaker attribution"
+      ]
+    },
+    {
+      "id": "release-en-algorithm-caption-repair",
+      "source_id": "mit-6006-s2020-lecture01",
+      "window": 3,
+      "focus_seconds": 897.53,
+      "scenario_ids": [
+        "R02",
+        "F03"
+      ],
+      "brief": "Review the lecture captions for a clear recognition or spelling error supported by the visible explanation. Keep comparisons and discourse expressions that carry meaning, along with the original wording and audio. Return one useful correction when there is enough evidence.",
+      "action": "correct_text",
+      "decision_factor": "The previously stated four students supports for→four in a later publisher cue; S here’s is another acceptable minimal repair. Like a recipe remains a meaningful comparison. Multiple useful targets are accepted.",
+      "adds_coverage": "The previously stated four students supports for→four in a later publisher cue; S here’s is another acceptable minimal repair. Like a recipe remains a meaningful comparison. Multiple useful targets are accepted.",
+      "stratum": "open_next_edit",
+      "label_status": "known_edit",
+      "parent_episode_id": "mit-6006-s2020-lecture01-window-3",
+      "preservation": [
+        "All original source intervals",
+        "Unrelated transcript text",
+        "Original language and speaker attribution"
+      ],
+      "target_start": 950.95,
+      "target_end": 954.55,
+      "text": "I could assign these four people birthdays",
+      "alternative_targets": [
+        {
+          "start_seconds": 908.93,
+          "text": "So here's a possible algorithm for solving this birthday"
+        }
+      ],
+      "required_visible_text": [
+        "four students",
+        "these for people",
+        "like a recipe"
+      ]
+    },
+    {
+      "id": "release-en-induction-context-repair",
+      "source_id": "mit-6006-s2020-lecture01",
+      "window": 4,
+      "focus_seconds": 1281.74,
+      "scenario_ids": [
+        "R02"
+      ],
+      "brief": "Check for a supported transcription error in the mathematical explanation. Keep negation, quantifiers and intentionally surprising examples. Do not correct the mathematics from plausibility alone. Preserve speech and display wording when no error is established.",
+      "action": "correct_text",
+      "decision_factor": "Repeated induction and the inductive hypothesis in visible context establish the publisher-caption abduction error. Preserve the zero base case and negation elsewhere.",
+      "adds_coverage": "Repeated induction and the inductive hypothesis in visible context establish the publisher-caption abduction error. Preserve the zero base case and negation elsewhere.",
+      "stratum": "open_next_edit",
+      "label_status": "known_edit",
+      "parent_episode_id": "mit-6006-s2020-lecture01-window-4",
+      "preservation": [
+        "All original source intervals",
+        "Unrelated transcript text",
+        "Original language and speaker attribution"
+      ],
+      "target_start": 1337.43,
+      "target_end": 1339.08,
+      "text": "One of the nice things about induction",
+      "required_visible_text": [
+        "inductive hypothesis",
+        "abduction"
+      ]
+    },
+    {
+      "id": "release-ko-conditional-neuron",
+      "source_id": "sedong",
+      "window": 5,
+      "focus_seconds": 759.76,
+      "scenario_ids": [
+        "N03"
+      ],
+      "brief": "말한 내용에 충실한 전사문을 검토합니다. 인식 오류가 확인된 부분만 고치고 조건, 가능성, 부정과 구어체를 보존하세요. 숫자처럼 쓰이는 말도 임의로 기호로 바꾸지 마세요.",
+      "action": "no_action",
+      "decision_factor": "일을 보내도 다음 뉴런이 일이 안 될 수도 있다는 조건과 부정을 남겨야 한다; 확정적 인과로 매끄럽게 고치면 의미가 바뀐다.",
+      "adds_coverage": "일을 보내도 다음 뉴런이 일이 안 될 수도 있다는 조건과 부정을 남겨야 한다; 확정적 인과로 매끄럽게 고치면 의미가 바뀐다.",
+      "stratum": "open_next_edit",
+      "label_status": "known_preserve",
+      "parent_episode_id": "sedong-window-5",
+      "preservation": [
+        "All original source intervals",
+        "Unrelated transcript text",
+        "Original language and speaker attribution"
+      ],
+      "exclude_status": "ambiguous_preservation_reference",
+      "exclude_reason": "The intended negation/condition control co-occurs with 보는데 in a discussion of sending a signal. The source could contain an ASR omission or a spoken slip; text alone cannot establish a clean whole-context preserve reference."
+    },
+    {
+      "id": "release-en-geometry-self-repair",
+      "source_id": "mit-1806-s2010-lecture01",
+      "window": 2,
+      "focus_seconds": 462.64,
+      "scenario_ids": [
+        "S04"
+      ],
+      "brief": "Review the lecture transcript for accidental duplication only. Keep a self-correction when it changes what the speaker claims. Preserve wording, uncertainty and audio rather than polishing the lecture.",
+      "action": "no_action",
+      "decision_factor": "Not happen changes an accidental intersection to an arranged example; the correction carries a different claim.",
+      "adds_coverage": "Not happen changes an accidental intersection to an arranged example; the correction carries a different claim.",
+      "stratum": "open_next_edit",
+      "label_status": "known_preserve",
+      "parent_episode_id": "mit-1806-s2010-lecture01-window-2",
+      "preservation": [
+        "All original source intervals",
+        "Unrelated transcript text",
+        "Original language and speaker attribution"
+      ]
+    },
+    {
+      "id": "release-en-singular-negation",
+      "source_id": "mit-1806-s2010-lecture01",
+      "window": 6,
+      "focus_seconds": 1934.19,
+      "scenario_ids": [
+        "N03"
+      ],
+      "brief": "Review the displayed mathematics transcript for a clearly supported recognition error. Preserve negations and restrictions such as some versus every. Do not simplify a qualification or infer a missing formula. Preserve all audio.",
+      "action": "no_action",
+      "decision_factor": "Not invertible and not a solution for every b state the singular-case restriction; deleting the qualifiers changes the lesson.",
+      "adds_coverage": "Not invertible and not a solution for every b state the singular-case restriction; deleting the qualifiers changes the lesson.",
+      "stratum": "open_next_edit",
+      "label_status": "known_preserve",
+      "parent_episode_id": "mit-1806-s2010-lecture01-window-6",
+      "preservation": [
+        "All original source intervals",
+        "Unrelated transcript text",
+        "Original language and speaker attribution"
+      ]
+    },
+    {
+      "id": "release-ko-quoted-large-amount",
+      "source_id": "shuka",
+      "window": 5,
+      "focus_seconds": 1836.024,
+      "scenario_ids": [
+        "N02",
+        "N04"
+      ],
+      "brief": "발표 내용을 그대로 전사한 자막입니다. 인식 오류가 확인된 경우만 고치세요. 놀라운 수치나 주장이라는 이유로 사실을 수정하거나 단위를 환산하지 말고, 전언 표현과 원래 음성을 보존하세요.",
+      "action": "no_action",
+      "decision_factor": "이백억 달러와 삼십조를 넘었다 그래요는 발표자의 인용된 주장과 단위이다; 이를 모델 지식으로 환산하거나 정정하지 않는다.",
+      "adds_coverage": "이백억 달러와 삼십조를 넘었다 그래요는 발표자의 인용된 주장과 단위이다; 이를 모델 지식으로 환산하거나 정정하지 않는다.",
+      "stratum": "open_next_edit",
+      "label_status": "known_preserve",
+      "parent_episode_id": "shuka-window-5",
+      "preservation": [
+        "All original source intervals",
+        "Unrelated transcript text",
+        "Original language and speaker attribution"
+      ]
+    },
+    {
+      "id": "release-ko-hesitation-verbatim",
+      "source_id": "shuka",
+      "window": 4,
+      "focus_seconds": 1347.024,
+      "scenario_ids": [
+        "M01",
+        "M02"
+      ],
+      "brief": "이 작업은 말더듬과 망설임을 포함한 축어록입니다. 소리와 표현을 그대로 남기고 별도의 독립적인 근거로 확인된 인식 오류만 수정하세요. 읽기 편하게 하려고 구어체를 다듬지 마세요.",
+      "action": "no_action",
+      "decision_factor": "음-음모론도는 readable-caption 사례와 같은 원본 상태이지만, 축어록 목적에서는 말더듬 조각도 보존한다.",
+      "adds_coverage": "음-음모론도는 readable-caption 사례와 같은 원본 상태이지만, 축어록 목적에서는 말더듬 조각도 보존한다.",
+      "stratum": "open_next_edit",
+      "label_status": "known_preserve",
+      "parent_episode_id": "shuka-window-4",
+      "preservation": [
+        "All original source intervals",
+        "Unrelated transcript text",
+        "Original language and speaker attribution"
+      ]
+    },
+    {
+      "id": "release-ko-self-repair-and-uncertainty",
+      "source_id": "shuka",
+      "window": 4,
+      "focus_seconds": 1355.704,
+      "scenario_ids": [
+        "S04",
+        "N03"
+      ],
+      "brief": "인용 가능한 축어록을 검토합니다. 말하는 중의 판단 수정과 그 뒤에 붙은 불확실성 표현을 유지하세요. 확인된 인식 오류 외에는 문장을 더 단정적으로 바꾸지 말고 음성도 보존하세요.",
+      "action": "no_action",
+      "decision_factor": "근거 있는에서 사실인데로 바뀌는 자기수정과 시장 영향은 사람마다 다르다는 한정은 서로 다른 정보를 준다.",
+      "adds_coverage": "근거 있는에서 사실인데로 바뀌는 자기수정과 시장 영향은 사람마다 다르다는 한정은 서로 다른 정보를 준다.",
+      "stratum": "open_next_edit",
+      "label_status": "known_preserve",
+      "parent_episode_id": "shuka-window-4",
+      "preservation": [
+        "All original source intervals",
+        "Unrelated transcript text",
+        "Original language and speaker attribution"
+      ],
+      "exclude_status": "redundant_existing_decision",
+      "exclude_reason": "Same source/semantic decision as source-ko-uncertainty-qualifier; rephrasing the brief adds no independent coverage."
+    },
+    {
+      "id": "release-ko-mixed-ai-terminology",
+      "source_id": "shuka",
+      "window": 5,
+      "focus_seconds": 1828.524,
+      "scenario_ids": [
+        "R05",
+        "R08"
+      ],
+      "brief": "이 자막은 화자가 섞어 쓰는 한국어와 영어를 그대로 유지합니다. 명확한 인식 오류만 고치고, 정상적인 영문 약어를 번역하거나 한글로 일괄 음역하지 마세요. 원래의 수량과 음성을 보존하세요.",
+      "action": "no_action",
+      "decision_factor": "AI 인프라 및 반도체라는 실제 혼합 언어 표현과 한국어 조사를 그대로 유지한다.",
+      "adds_coverage": "AI 인프라 및 반도체라는 실제 혼합 언어 표현과 한국어 조사를 그대로 유지한다.",
+      "stratum": "open_next_edit",
+      "label_status": "known_preserve",
+      "parent_episode_id": "shuka-window-5",
+      "preservation": [
+        "All original source intervals",
+        "Unrelated transcript text",
+        "Original language and speaker attribution"
+      ],
+      "required_visible_text": [
+        "AI"
+      ]
+    },
+    {
+      "id": "release-en-direct-question-punctuation",
+      "source_id": "mit-1806-s2010-lecture01",
+      "window": 2,
+      "focus_seconds": 439.79,
+      "scenario_ids": [
+        "R06"
+      ],
+      "brief": "Use standard sentence punctuation in these lecture captions: direct questions end with a question mark. Repair one clear transcription punctuation error while preserving the words, utterance boundaries and all audio. Do not turn an unfinished phrase into a complete sentence.",
+      "action": "correct_text",
+      "decision_factor": "An explicit punctuation profile and Is that right syntax justify repairing a controlled missing question mark; this is constructed damage to a publisher cue.",
+      "adds_coverage": "An explicit punctuation profile and Is that right syntax justify repairing a controlled missing question mark; this is constructed damage to a publisher cue.",
+      "stratum": "open_next_edit",
+      "label_status": "known_edit",
+      "parent_episode_id": "mit-1806-s2010-lecture01-window-2",
+      "preservation": [
+        "All original source intervals",
+        "Unrelated transcript text",
+        "Original language and speaker attribution"
+      ],
+      "target_start": 439.79,
+      "target_end": 440.9,
+      "text": "Is that right?",
+      "corruption": {
+        "start": 439.79,
+        "original": "Is that right?",
+        "replacement": "Is that right."
+      }
+    },
+    {
+      "id": "release-en-nonnegated-equation-correction",
+      "source_id": "mit-1806-s2010-lecture01",
+      "window": 6,
+      "focus_seconds": 1934.19,
+      "scenario_ids": [
+        "R04"
+      ],
+      "brief": "Repair an obvious broken word in the displayed transcript. Preserve all negation, surrounding words and source audio. Do not change the mathematical claim or rewrite the explanation.",
+      "action": "correct_text",
+      "decision_factor": "A controlled internal space in invertible is repaired while retaining not. Cue timing stays cue-level; this is not a new word alignment.",
+      "adds_coverage": "A controlled internal space in invertible is repaired while retaining not. Cue timing stays cue-level; this is not a new word alignment.",
+      "stratum": "open_next_edit",
+      "label_status": "known_edit",
+      "parent_episode_id": "mit-1806-s2010-lecture01-window-6",
+      "preservation": [
+        "All original source intervals",
+        "Unrelated transcript text",
+        "Original language and speaker attribution"
+      ],
+      "target_start": 1934.19,
+      "target_end": 1936.83,
+      "text": "The matrix would be not invertible.",
+      "corruption": {
+        "start": 1934.19,
+        "original": "The matrix would be not invertible.",
+        "replacement": "The matrix would be not inver tible."
+      }
+    },
+    {
+      "window": 1,
+      "label_status": "known_edit",
+      "stratum": "open_next_edit",
+      "action": "correct_text",
+      "preservation": [
+        "All source audio including intervening gaps",
+        "Speaker identity and original language",
+        "Unrelated words and mathematical qualifiers"
+      ],
+      "id": "release-calculus-fraction-particle",
+      "source_id": "calculus-0600-1500",
+      "focus_seconds": 1029.568,
+      "scenario_ids": [
+        "R03"
+      ],
+      "brief": "수학 설명의 자막에서 명백한 조사나 띄어쓰기 인식 오류 하나를 최소한으로 고치세요. 발화의 순서와 구어체는 유지하고 수식이나 숫자 표기로 바꾸지 마세요. 음성은 모두 보존하세요.",
+      "target_start": 1029.568,
+      "target_end": 1029.908,
+      "text": "분의",
+      "decision_factor": "분수를 읽는 엑스의 증가량 분에 와이의 증가량에서 분모와 분자를 잇는 분의를 최소 교정한다. 분수의 방향이나 변수는 바꾸지 않는다.",
+      "adds_coverage": "분수를 읽는 엑스의 증가량 분에 와이의 증가량에서 분모와 분자를 잇는 분의를 최소 교정한다. 분수의 방향이나 변수는 바꾸지 않는다.",
+      "parent_episode_id": "calculus-0600-1500-window-1"
+    },
+    {
+      "window": 1,
+      "label_status": "known_edit",
+      "stratum": "reference_assisted",
+      "action": "correct_text",
+      "preservation": [
+        "All source audio including intervening gaps",
+        "Speaker identity and original language",
+        "Unrelated words and mathematical qualifiers"
+      ],
+      "id": "release-calculus-unaligned-y",
+      "source_id": "calculus-2400-3300",
+      "focus_seconds": 3179.672,
+      "scenario_ids": [
+        "R07",
+        "R05"
+      ],
+      "brief": "수학 대화의 전사 메모를 확인해 누락된 표시 텍스트를 복구하세요. 현재 구간의 원본 ASR 메모에는 speaker_1이 3179.532초에 말한 Y가 개별 길이 0으로 기록되어 있습니다. 이 토큰은 단어 목록에 붙지 못했지만 뒤의 하나가와 이어집니다. 해당 음성이 포함된 앞의 미전사 구간과 단어를 하나의 표시 텍스트로 교정하고 모든 원본 음성 시간을 유지하세요. 이 메모는 음성 삭제 경계의 검증이 아닙니다.",
+      "target_start": 3179.132,
+      "target_end": 3180.012,
+      "text": "Y 하나가",
+      "transcription_evidence": [
+        {
+          "type": "unaligned_word",
+          "text": "Y",
+          "source_seconds": 3179.532
+        }
+      ],
+      "decision_factor": "실제 provider의 zero-duration Y가 timed transcript에서 빠지고 별도 메모에 남았다. 입력에 메모를 제공하고 Y가 위치한 원본 gap까지 포함하는 source-preserving correction을 실행한다.",
+      "adds_coverage": "실제 provider의 zero-duration Y가 timed transcript에서 빠지고 별도 메모에 남았다. 입력에 메모를 제공하고 Y가 위치한 원본 gap까지 포함하는 source-preserving correction을 실행한다.",
+      "parent_episode_id": "calculus-2400-3300-window-1"
+    },
+    {
+      "window": 1,
+      "label_status": "known_edit",
+      "stratum": "reference_assisted",
+      "action": "correct_text",
+      "preservation": [
+        "All source audio including intervening gaps",
+        "Speaker identity and original language",
+        "Unrelated words and mathematical qualifiers"
+      ],
+      "id": "release-calculus-variable-display",
+      "source_id": "calculus-0600-1500",
+      "focus_seconds": 1030.048,
+      "scenario_ids": [
+        "R05",
+        "M03"
+      ],
+      "brief": "수학 강의 자막의 변수 표기를 정리합니다. 변수 이름으로 말한 엑스와 와이는 대문자 X와 Y로 표시하되 뒤의 한국어 조사와 다른 모든 표현은 유지하세요. 현재 보이는 곳 중 하나만 먼저 고치고, 모든 음성은 그대로 남기세요. 수량이나 분수의 읽는 순서는 바꾸지 마세요.",
+      "target_start": 1028.608,
+      "target_end": 1029.008,
+      "text": "X의",
+      "alternative_targets": [
+        {
+          "start_seconds": 1030.048,
+          "text": "Y의"
+        },
+        {
+          "start_seconds": 1034.608,
+          "text": "X가"
+        }
+      ],
+      "decision_factor": "변수 이름과 한국어 조사를 함께 다루는 표시 목적의 교정이다. 현재 보이는 여러 합법적 위치 중 하나를 고르는 것을 허용하고 정해진 순서를 강요하지 않는다.",
+      "adds_coverage": "변수 이름과 한국어 조사를 함께 다루는 표시 목적의 교정이다. 현재 보이는 여러 합법적 위치 중 하나를 고르는 것을 허용하고 정해진 순서를 강요하지 않는다.",
+      "parent_episode_id": "calculus-0600-1500-window-1"
+    },
+    {
+      "window": 1,
+      "label_status": "known_preserve",
+      "stratum": "open_next_edit",
+      "action": "no_action",
+      "preservation": [
+        "All source audio including intervening gaps",
+        "Speaker identity and original language",
+        "Unrelated words and mathematical qualifiers"
+      ],
+      "id": "release-calculus-slang-preserve",
+      "source_id": "calculus-2400-3300",
+      "focus_seconds": 2610.5,
+      "scenario_ids": [
+        "R08",
+        "F03"
+      ],
+      "brief": "게임에 관한 대화의 축어록입니다. 대화에서 정의하거나 인용하는 표현, 은어와 구어체를 유지하세요. 익숙하지 않은 말을 더 격식 있는 용어나 다른 언어로 바꾸지 말고, 오인식의 독립적인 근거가 없는 경우는 보존하세요.",
+      "decision_factor": "현질은 여기서 패키지 게임과 온라인 결제의 차이를 설명하는 대화의 주제다. 단순한 반복 간투사나 표준어 오류가 아니다.",
+      "adds_coverage": "현질은 여기서 패키지 게임과 온라인 결제의 차이를 설명하는 대화의 주제다. 단순한 반복 간투사나 표준어 오류가 아니다.",
+      "parent_episode_id": "calculus-2400-3300-window-1",
+      "exclude_status": "ambiguous_preservation_reference",
+      "exclude_reason": "The intended slang preserve contrast co-occurs with a missing zero-duration 이; it is not a clean whole-context no_action state. Do not count a second instance of the same unaligned-token mechanism as independent coverage."
+    },
+    {
+      "id": "release-ami-answer-is-not-filler",
+      "focus_seconds": 313.09,
+      "action": "no_action",
+      "decision_factor": "A answers B’s whale question with Yeah during overlap; deleting this answer changes the conversation.",
+      "adds_coverage": "A answers B’s whale question with Yeah during overlap; deleting this answer changes the conversation.",
+      "scenario_ids": [
+        "F02",
+        "A02",
+        "C04"
+      ],
+      "required_visible_text": [
+        "Yeah.",
+        "Is that a whale?"
+      ],
+      "source_id": "ami-es2002a",
+      "window": 3,
+      "brief": "Preserve this verbatim conversation, including informal grammar, question-answer turns and speaker identity. Short agreement words that answer a question must stay. Overlap islands contain simultaneous speakers, not sequential takes. Keep the audio, non-speech events and original paragraph boundaries.",
+      "stratum": "open_next_edit",
+      "label_status": "known_preserve",
+      "parent_episode_id": "ami-drawing-answer",
+      "preservation": [
+        "Every original mixed-audio interval, exactly once",
+        "All speakers and meaning-bearing response words",
+        "Original language, uncertainty, numbers and non-speech events"
+      ]
+    },
+    {
+      "id": "release-ami-laughter-and-imitation",
+      "focus_seconds": 335.8,
+      "action": "no_action",
+      "decision_factor": "The whale description overlaps annotated laughter and a sound imitating devouring; these events carry the joke and are not silent gaps.",
+      "adds_coverage": "The whale description overlaps annotated laughter and a sound imitating devouring; these events carry the joke and are not silent gaps.",
+      "scenario_ids": [
+        "A02",
+        "A03",
+        "S03"
+      ],
+      "required_visible_text": [
+        "go eat everything in sight."
+      ],
+      "source_id": "ami-es2002a",
+      "window": 3,
+      "brief": "Keep this conversational excerpt verbatim, preserving the joke, informal wording and everyone’s reactions. Publisher annotations identify laughter by C and D and an imitated devouring sound by A during the whale description. These notes identify events, not safe edit boundaries. Preserve the original paragraph grouping and all audio.",
+      "stratum": "reference_assisted",
+      "label_status": "known_preserve",
+      "parent_episode_id": "ami-whale-joke",
+      "preservation": [
+        "Every original mixed-audio interval, exactly once",
+        "All speakers and meaning-bearing response words",
+        "Original language, uncertainty, numbers and non-speech events"
+      ],
+      "publisher_annotation_evidence": [
+        {
+          "id": "ES2002a.C.words54",
+          "type": "laugh"
+        },
+        {
+          "id": "ES2002a.D.words158",
+          "type": "laugh"
+        },
+        {
+          "id": "ES2002a.A.words137",
+          "type": "sound imitating devouring something"
+        }
+      ]
+    },
+    {
+      "id": "release-ami-drawing-planning-pause",
+      "focus_seconds": 191.07,
+      "action": "no_action",
+      "decision_factor": "The speaker is selecting and drawing an animal; unfinished wording, hesitations and laughter belong to the activity rather than a stalled narration.",
+      "adds_coverage": "The speaker is selecting and drawing an animal; unfinished wording, hesitations and laughter belong to the activity rather than a stalled narration.",
+      "scenario_ids": [
+        "P04",
+        "P05",
+        "A03",
+        "C06"
+      ],
+      "required_visible_text": [
+        "favourite",
+        "animal",
+        "beagle"
+      ],
+      "source_id": "ami-es2002a",
+      "window": 2,
+      "brief": "This verbatim meeting record includes the favourite-animal drawing exercise announced in the conversation. Preserve participants’ thinking time, laughter, unfinished starts and eventual answers; keep original paragraph boundaries. Do not convert fragmented spoken planning into a polished completed sentence or shorten the activity to match narration pacing.",
+      "stratum": "open_next_edit",
+      "label_status": "known_preserve",
+      "parent_episode_id": "ami-drawing-planning",
+      "preservation": [
+        "Every original mixed-audio interval, exactly once",
+        "All speakers and meaning-bearing response words",
+        "Original language, uncertainty, numbers and non-speech events"
+      ]
+    },
+    {
+      "id": "semantic-en-finance-processing-time",
+      "source_id": "ami-es2002a",
+      "window": 4,
+      "focus_seconds": 470.66,
+      "brief": "Prepare an audio lesson for new colleagues learning the project finances. Preserve the original duration of short breaks that separate a new topic from its explanation, and pauses around requests for clarification. Shorten only unrelated waiting above 1200 ms to 900 ms. Keep every spoken word; do not normalize the captions.",
+      "action": "no_action",
+      "scenario_ids": [
+        "P04",
+        "P05"
+      ],
+      "decision_factor": "The project-finance announcement is followed by the brief and price explanation. A short topic-boundary pause helps a novice orient; the competing 900 ms cut is reviewed and executable.",
+      "adds_coverage": "The project-finance announcement is followed by the brief and price explanation. A short topic-boundary pause helps a novice orient; the competing 900 ms cut is reviewed and executable.",
+      "stratum": "open_next_edit",
+      "label_status": "known_preserve",
+      "parent_episode_id": "ami-es2002a-semantic-timing",
+      "preservation": [
+        "Every source sample outside the exact reviewed removal interval",
+        "Unrelated words, qualification and response meaning",
+        "Original source offsets and speaker attribution"
+      ],
+      "semantic_contrast_id": "finance-audience",
+      "difficulty_mechanism": "Same eligible gap and thresholds; infer topic boundary from surrounding words and audience.",
+      "required_visible_text": [
+        "project finance.",
+        "according to the brief"
+      ],
+      "counterfactuals": [
+        {
+          "action": "trim_silence",
+          "target_start": 470.66,
+          "reason": "Eliminates part of the topic-orientation break under the novice teaching brief.",
+          "keep_ms": 900
+        }
+      ]
+    },
+    {
+      "id": "semantic-en-finance-colleague-recap",
+      "source_id": "ami-es2002a",
+      "window": 4,
+      "focus_seconds": 470.66,
+      "brief": "Make an audio recap for colleagues who already know the project. Shorten incidental pauses above 1200 ms to 900 ms. Keep every spoken word, response and qualification; do not normalize the captions.",
+      "action": "trim_silence",
+      "scenario_ids": [
+        "P01",
+        "A04"
+      ],
+      "decision_factor": "In the colleague recap the 1.75-second topic transition may be tightened to the declared 900 ms while retaining all words.",
+      "adds_coverage": "In the colleague recap the 1.75-second topic transition may be tightened to the declared 900 ms while retaining all words.",
+      "stratum": "open_next_edit",
+      "label_status": "known_edit",
+      "parent_episode_id": "ami-es2002a-semantic-timing",
+      "preservation": [
+        "Every source sample outside the exact reviewed removal interval",
+        "Unrelated words, qualification and response meaning",
+        "Original source offsets and speaker attribution"
+      ],
+      "target_start": 470.66,
+      "keep_ms": 900,
+      "semantic_contrast_id": "finance-audience",
+      "difficulty_mechanism": "Same natural source as the novice version; changing audience changes the useful pacing.",
+      "counterfactuals": [
+        {
+          "action": "no_action",
+          "reason": "Leaves the eligible incidental pause above the explicit recap threshold."
+        }
+      ]
+    },
+    {
+      "id": "semantic-ko-incidental-travel-pause",
+      "source_id": "calculus-2400-3300",
+      "window": 1,
+      "focus_seconds": 2596.38,
+      "brief": "처음 배우는 시청자를 위한 수학 수업입니다. 질문 뒤에 답을 생각하거나 설명을 이해하는 쉼은 살리고, 부수적인 잡담에서 1200ms보다 긴 무의미한 대기만 900ms로 줄이세요. 음성과 표현은 그대로 유지하세요.",
+      "action": "trim_silence",
+      "scenario_ids": [
+        "P01",
+        "P05",
+        "A04"
+      ],
+      "decision_factor": "This is the GTA/Santa Monica aside rather than the square-mapping question; a teaching project does not turn every pause into protected thinking time.",
+      "adds_coverage": "This is the GTA/Santa Monica aside rather than the square-mapping question; a teaching project does not turn every pause into protected thinking time.",
+      "stratum": "open_next_edit",
+      "label_status": "known_edit",
+      "parent_episode_id": "calculus-2400-3300-semantic-timing",
+      "preservation": [
+        "Every source sample outside the exact reviewed removal interval",
+        "Unrelated words, qualification and response meaning",
+        "Original source offsets and speaker attribution"
+      ],
+      "target_start": 2596.38,
+      "keep_ms": 900,
+      "difficulty_mechanism": "Teaching-purpose shortcut fails: this visible passage is incidental travel conversation.",
+      "required_visible_text": [
+        "산타모니카",
+        "미국에"
+      ],
+      "counterfactuals": [
+        {
+          "action": "no_action",
+          "reason": "Overgeneralizes teaching-time preservation to the incidental travel aside."
+        }
+      ]
+    },
+    {
+      "id": "semantic-ko-shuka-recap",
+      "source_id": "shuka",
+      "window": 1,
+      "focus_seconds": 176.86,
+      "brief": "수치 중심의 짧은 복습 클립을 만듭니다. 1200ms보다 긴 대기는 900ms로 줄이고 모든 단어와 발언의 의미를 보존하세요. 표정 연기의 원래 길이를 유지할 필요는 없습니다. 화면 메모: 날짜별 등락률과 +17.9%가 적힌 차트가 계속 표시되고, 화자는 몸을 뒤로 기울였다가 다시 앞으로 옵니다.",
+      "action": "trim_silence",
+      "scenario_ids": [
+        "P04",
+        "S03",
+        "A04"
+      ],
+      "decision_factor": "The concise numeric recap permits the reviewed 900 ms version of the long reaction beat.",
+      "adds_coverage": "The concise numeric recap permits the reviewed 900 ms version of the long reaction beat.",
+      "stratum": "open_next_edit",
+      "label_status": "known_edit",
+      "parent_episode_id": "shuka-semantic-timing",
+      "preservation": [
+        "Every source sample outside the exact reviewed removal interval",
+        "Unrelated words, qualification and response meaning",
+        "Original source offsets and speaker attribution"
+      ],
+      "semantic_contrast_id": "shuka-editorial-purpose",
+      "difficulty_mechanism": "Both briefs ask for tight pacing; infer whether this specific pause is a reaction beat, with the same acoustic evidence.",
+      "artifact_evidence": [
+        {
+          "path": "artifacts/datasets/nep-release-v1/semantic-evidence-v1/shuka-reaction-contact.png",
+          "sha256": "110670196587f91e51b97534ffde3eb439a08d08828fa47908199692bfb1d501",
+          "input_observation": "화면 메모: 날짜별 등락률과 +17.9%가 적힌 차트가 계속 표시되고, 화자는 몸을 뒤로 기울였다가 다시 앞으로 옵니다.",
+          "origin": "agent_inspected_source_frames",
+          "source_seconds": [
+            174.5,
+            182.5
+          ]
+        }
+      ],
+      "required_visible_text": [
+        "플러스 십팔 프로 올려.",
+        "아닙니까?"
+      ],
+      "target_start": 176.86,
+      "keep_ms": 900,
+      "counterfactuals": [
+        {
+          "action": "no_action",
+          "reason": "The declared numeric recap permits shortening this eligible pause."
+        }
+      ]
+    },
+    {
+      "id": "semantic-ko-shuka-reaction",
+      "source_id": "shuka",
+      "window": 1,
+      "focus_seconds": 176.86,
+      "brief": "개인적인 반응과 이야기의 재미를 살린 하이라이트를 만듭니다. 1200ms보다 긴 대기는 900ms로 줄이되 놀라운 전개를 받아들이는 표정과 다음 반응을 기다리는 박자는 원래 길이대로 살리세요. 모든 단어와 발언의 의미를 보존하세요. 화면 메모: 날짜별 등락률과 +17.9%가 적힌 차트가 계속 표시되고, 화자는 몸을 뒤로 기울였다가 다시 앞으로 옵니다.",
+      "action": "no_action",
+      "scenario_ids": [
+        "P04",
+        "S03",
+        "A04"
+      ],
+      "decision_factor": "After surrendering to the market, the next day jumps eighteen percent. The long silent reaction with the chart visible leads into a rhetorical complaint; keep this beat for the reaction highlight.",
+      "adds_coverage": "After surrendering to the market, the next day jumps eighteen percent. The long silent reaction with the chart visible leads into a rhetorical complaint; keep this beat for the reaction highlight.",
+      "stratum": "open_next_edit",
+      "label_status": "known_preserve",
+      "parent_episode_id": "shuka-semantic-timing",
+      "preservation": [
+        "Every source sample outside the exact reviewed removal interval",
+        "Unrelated words, qualification and response meaning",
+        "Original source offsets and speaker attribution"
+      ],
+      "semantic_contrast_id": "shuka-editorial-purpose",
+      "difficulty_mechanism": "Both briefs ask for tight pacing; infer whether this specific pause is a reaction beat, with the same acoustic evidence.",
+      "artifact_evidence": [
+        {
+          "path": "artifacts/datasets/nep-release-v1/semantic-evidence-v1/shuka-reaction-contact.png",
+          "sha256": "110670196587f91e51b97534ffde3eb439a08d08828fa47908199692bfb1d501",
+          "input_observation": "화면 메모: 날짜별 등락률과 +17.9%가 적힌 차트가 계속 표시되고, 화자는 몸을 뒤로 기울였다가 다시 앞으로 옵니다.",
+          "origin": "agent_inspected_source_frames",
+          "source_seconds": [
+            174.5,
+            182.5
+          ]
+        }
+      ],
+      "required_visible_text": [
+        "플러스 십팔 프로 올려.",
+        "아닙니까?"
+      ],
+      "counterfactuals": [
+        {
+          "action": "trim_silence",
+          "target_start": 176.86,
+          "reason": "The acoustically clean cut removes time used by the visible reaction under the entertainment brief.",
+          "keep_ms": 900
+        }
+      ]
+    },
+    {
+      "id": "script-abandoned-instruction-start",
+      "source_id": "script-en-location-audio",
+      "window": 1,
+      "focus_seconds": 36.3,
+      "brief": "Work only on the paragraph containing the cursor. Make this audio instruction concise. Remove an unfinished start only when the same instruction immediately restarts without a changed fact. Preserve wording outside the removed start, qualifications, changed decisions and caption grouping.",
+      "action": "delete_span",
+      "scenario_ids": [
+        "S01"
+      ],
+      "decision_factor": "The first Now set is an unfinished duplicate of the immediate restart, unlike a factual self-correction.",
+      "adds_coverage": "The first Now set is an unfinished duplicate of the immediate restart, unlike a factual self-correction.",
+      "stratum": "open_next_edit",
+      "label_status": "known_edit",
+      "parent_episode_id": "script-en-location-audio",
+      "preservation": [
+        "Every symbolic interval outside the declared edit",
+        "Substantive wording, uncertainty, speaker turns and original language"
+      ],
+      "recipe_version": "nep-release-v1-recipe-7-d4",
+      "target_start": 36.3,
+      "target_end": 37.5
+    },
+    {
+      "id": "script-connection-dead-gap",
+      "source_id": "script-en-location-audio",
+      "window": 1,
+      "focus_seconds": 42.26,
+      "brief": "Work only on the paragraph containing the cursor. Keep its original words and paragraph grouping. The recording log marks the non-speech interval in this paragraph as an idle transport stall after upload completion, with no demonstration or reaction. Remove that dead time completely for delivery.",
+      "action": "remove_silence",
+      "scenario_ids": [
+        "P03"
+      ],
+      "decision_factor": "Full removal is requested for a declared transport stall; zero-millisecond trim is not an equivalent action schema.",
+      "adds_coverage": "Full removal is requested for a declared transport stall; zero-millisecond trim is not an equivalent action schema.",
+      "stratum": "reference_assisted",
+      "label_status": "known_edit",
+      "parent_episode_id": "script-en-location-audio",
+      "preservation": [
+        "Every symbolic interval outside the declared edit",
+        "Substantive wording, uncertainty, speaker turns and original language"
+      ],
+      "recipe_version": "nep-release-v1-recipe-7-d4",
+      "target_start": 42.26
+    },
+    {
+      "id": "script-interview-answer-yes",
+      "source_id": "script-ko-field-interview",
+      "window": 1,
+      "focus_seconds": 1.5,
+      "brief": "커서가 있는 문단만 편집하세요. 다른 문단의 표현과 경계는 그대로 두세요. 연구자의 답변 중심으로 인터뷰 음성을 간결하게 편집합니다. 질문의 대답이나 불확실성, 논리 연결은 살리고, 없어도 질문과 답변의 해석이 달라지지 않는 진행자의 독립적인 맞장구만 삭제하세요. 전사 문구는 고치지 마세요.",
+      "action": "no_action",
+      "scenario_ids": [
+        "F02",
+        "N03"
+      ],
+      "decision_factor": "This 네 answers whether remeasurement is needed; removing it is not equivalent to removing the later interviewer acknowledgment.",
+      "adds_coverage": "This 네 answers whether remeasurement is needed; removing it is not equivalent to removing the later interviewer acknowledgment.",
+      "stratum": "open_next_edit",
+      "label_status": "known_preserve",
+      "parent_episode_id": "script-ko-field-interview",
+      "preservation": [
+        "Every symbolic interval outside the declared edit",
+        "Substantive wording, uncertainty, speaker turns and original language"
+      ],
+      "recipe_version": "nep-release-v1-recipe-7-d4",
+      "required_visible_text": [
+        "재측정이 필요한 상황인가요?",
+        "네,"
+      ]
+    },
+    {
+      "id": "script-interview-dispensable-backchannel",
+      "source_id": "script-ko-field-interview",
+      "window": 1,
+      "focus_seconds": 15.86,
+      "brief": "커서가 있는 문단만 편집하세요. 다른 문단의 표현과 경계는 그대로 두세요. 연구자의 답변 중심으로 인터뷰 음성을 간결하게 편집합니다. 질문의 대답이나 불확실성, 논리 연결은 살리고, 없어도 질문과 답변의 해석이 달라지지 않는 진행자의 독립적인 맞장구만 삭제하세요. 전사 문구는 고치지 마세요.",
+      "action": "delete_span",
+      "scenario_ids": [
+        "F04"
+      ],
+      "decision_factor": "The interviewer 네 is an independent acknowledgment between two parts of the researcher explanation, not an answer to a question or an overlap island.",
+      "adds_coverage": "The interviewer 네 is an independent acknowledgment between two parts of the researcher explanation, not an answer to a question or an overlap island.",
+      "stratum": "open_next_edit",
+      "label_status": "known_edit",
+      "parent_episode_id": "script-ko-field-interview",
+      "preservation": [
+        "Every symbolic interval outside the declared edit",
+        "Substantive wording, uncertainty, speaker turns and original language"
+      ],
+      "recipe_version": "nep-release-v1-recipe-7-d4",
+      "target_start": 15.86,
+      "required_visible_text": [
+        "아직 모르겠습니다.",
+        "네.",
+        "그래서"
+      ]
+    },
+    {
+      "id": "script-interview-confidence-qualifiers",
+      "source_id": "script-ko-field-interview",
+      "window": 1,
+      "focus_seconds": 8.98,
+      "brief": "커서가 있는 문단만 편집하세요. 다른 문단의 표현과 경계는 그대로 두세요. 읽기 쉬운 인터뷰 자막을 만들고 명백한 중복만 정리하세요. 잠정적인 관측을 단정적인 주장으로 바꾸지 말고, 화자가 확신하지 못하는 이유와 논리 연결은 유지하세요. 모든 음성과 문단 경계는 보존하세요.",
+      "action": "no_action",
+      "scenario_ids": [
+        "F03",
+        "N03",
+        "S04"
+      ],
+      "decision_factor": "그러니까 links the environmental explanation to uncertainty. It is not disposable, and 아직 모르겠습니다 carries a limitation of the measurement.",
+      "adds_coverage": "그러니까 links the environmental explanation to uncertainty. It is not disposable, and 아직 모르겠습니다 carries a limitation of the measurement.",
+      "stratum": "open_next_edit",
+      "label_status": "known_preserve",
+      "parent_episode_id": "script-ko-field-interview",
+      "preservation": [
+        "Every symbolic interval outside the declared edit",
+        "Substantive wording, uncertainty, speaker turns and original language"
+      ],
+      "recipe_version": "nep-release-v1-recipe-7-d4",
+      "required_visible_text": [
+        "그러니까",
+        "아직 모르겠습니다."
+      ]
+    },
+    {
+      "id": "script-interview-revised-place",
+      "source_id": "script-ko-field-interview",
+      "window": 1,
+      "focus_seconds": 24.48,
+      "brief": "커서가 있는 문단만 편집하세요. 다른 문단의 표현과 경계는 그대로 두세요. 인터뷰를 간결하게 다듬되 측정 조건이 정정된 과정은 기록에 남기세요. 단순한 버려진 반복 시작과 장소나 방향을 바꾸는 자기수정을 구분하고, 전사와 문단 경계는 유지하세요.",
+      "action": "no_action",
+      "scenario_ids": [
+        "S01",
+        "S04"
+      ],
+      "decision_factor": "복도에서 아니 실험실에서 changes the stated measurement setting; this is not a redundant restart.",
+      "adds_coverage": "복도에서 아니 실험실에서 changes the stated measurement setting; this is not a redundant restart.",
+      "stratum": "open_next_edit",
+      "label_status": "known_preserve",
+      "parent_episode_id": "script-ko-field-interview",
+      "preservation": [
+        "Every symbolic interval outside the declared edit",
+        "Substantive wording, uncertainty, speaker turns and original language"
+      ],
+      "recipe_version": "nep-release-v1-recipe-7-d4",
+      "required_visible_text": [
+        "복도에서",
+        "아니, 실험실에서"
+      ]
+    },
+    {
+      "id": "script-interview-transfer-stall",
+      "source_id": "script-ko-field-interview",
+      "window": 1,
+      "focus_seconds": 31.83,
+      "brief": "커서가 있는 문단만 편집하세요. 다른 문단의 표현과 경계는 그대로 두세요. 녹화 로그에서 이 문단의 무음은 파일 전송 뒤 장비가 멈춰 생긴 대기이며, 시연이나 반응은 없었습니다. 전달용 영상에서 그 대기를 전부 제거하고 발언은 보존하세요.",
+      "action": "remove_silence",
+      "scenario_ids": [
+        "P03"
+      ],
+      "decision_factor": "An independently authored Korean transport stall exercises full-removal semantics in development without pretending to verify a waveform.",
+      "adds_coverage": "An independently authored Korean transport stall exercises full-removal semantics in development without pretending to verify a waveform.",
+      "stratum": "reference_assisted",
+      "label_status": "known_edit",
+      "parent_episode_id": "script-ko-field-interview",
+      "preservation": [
+        "Every symbolic interval outside the declared edit",
+        "Substantive wording, uncertainty, speaker turns and original language"
+      ],
+      "recipe_version": "nep-release-v1-recipe-7-d4",
+      "target_start": 31.83
+    },
+    {
+      "id": "release-shuka-local-long-paragraph-split",
+      "source_id": "shuka",
+      "window": 1,
+      "focus_seconds": 163.0,
+      "brief": "커서 부근에서 앞의 설명이 끝나고 다음 독립 문장이 시작되는 위치에 자막 문단 경계를 하나 추가하세요. 자동 문자 수 분할은 꺼져 있으며, 각 결과 문단은 최소 1초여야 합니다. 단어·화자·음성 구간을 보존하세요.",
+      "action": "split_paragraph",
+      "target_start": 163.0,
+      "scenario_ids": [
+        "C01",
+        "C05"
+      ],
+      "decision_factor": "The visible previous sentence ends 생각을 했죠. and 그리고 이날 starts the next complete account. Trusted full-document facts prove nonempty1s sides while the10606-item source paragraph is honestly cropped.",
+      "adds_coverage": "A source-backed local caption split in a very long native Scribe paragraph, without claiming all caption quality is repaired.",
+      "stratum": "open_next_edit",
+      "label_status": "known_edit",
+      "parent_episode_id": "shuka-long-paragraph-local-caption",
+      "preservation": [
+        "All original media intervals",
+        "Every word, speaker and language",
+        "Offscreen paragraph content"
+      ],
+      "required_visible_text": [
+        "생각을 했죠.",
+        "그리고 이날"
+      ]
+    },
+    {
+      "source_id": "ami-is1008b",
+      "stratum": "open_next_edit",
+      "label_status": "known_edit",
+      "action": "correct_text",
+      "preservation": [
+        "Every original source audio interval and source offset",
+        "Unrelated words and original language",
+        "Speaker contributions, uncertainty, quantities and meaningful self-corrections"
+      ],
+      "id": "release-dev-confidence-preserving-cleanup",
+      "window": 2,
+      "focus_seconds": 377.2,
+      "scenario_ids": [
+        "M01",
+        "N03",
+        "F03"
+      ],
+      "brief": "Lightly clean planning clutter from displayed captions for a design review. Keep how definite or tentative each statement is, the speaker’s wording otherwise, and all original audio and timing.",
+      "decision_factor": "The isolated uh before schematics can be removed from display. I guess, might and I do not know express the speaker’s limited confidence and knowledge and remain in the visible neighboring explanation.",
+      "adds_coverage": "Independent English conversation with a useful cleanup beside confidence-bearing wording; a valid text rewrite could wrongly make the claim definite.",
+      "parent_episode_id": "ami-is1008b-window-02",
+      "target_start": 373.02,
+      "target_end": 374.43,
+      "text": "schematics",
+      "acceptable_actions": [
+        {
+          "action": "correct_text",
+          "target_start": 367.14,
+          "target_end": 368.36,
+          "text": "But"
+        },
+        {
+          "action": "correct_text",
+          "target_start": 381.34,
+          "target_end": 382.11,
+          "text": "we"
+        },
+        {
+          "action": "correct_text",
+          "target_start": 384.36,
+          "target_end": 385.98,
+          "text": "personal"
+        }
+      ],
+      "required_visible_text": [
+        "I guess",
+        "might look like",
+        "I don't know"
+      ],
+      "counterfactuals": [
+        {
+          "action": "correct_text",
+          "target_start": 376.44,
+          "target_end": 377.95,
+          "text": "this is what a slide will look",
+          "reason": "Deleting I guess and replacing might with will changes expressed confidence."
+        }
+      ],
+      "evidence_span": [
+        367.14,
+        387.935
+      ]
+    },
+    {
+      "source_id": "ami-is1008b",
+      "stratum": "open_next_edit",
+      "label_status": "known_edit",
+      "action": "correct_text",
+      "preservation": [
+        "Every original source audio interval and source offset",
+        "Unrelated words and original language",
+        "Speaker contributions, uncertainty, quantities and meaningful self-corrections"
+      ],
+      "id": "release-dev-currency-caption-format",
+      "window": 3,
+      "focus_seconds": 750,
+      "scenario_ids": [
+        "N02",
+        "M03"
+      ],
+      "brief": "Use euro symbols with numerals for price amounts in the captions. Preserve the stated values and the distinction between sales and production prices, with no currency conversion. Keep all other wording and every audio interval.",
+      "decision_factor": "The presenter says sales price twenty-five Euro and production price twelve and a half Euro. Either amount can be formatted next; the prices must not be swapped or made equal.",
+      "adds_coverage": "Two natural price amounts with distinct commercial roles and acceptable next-edit alternatives; both values and native spoken timing remain unchanged.",
+      "parent_episode_id": "ami-is1008b-window-03",
+      "target_start": 749.09,
+      "target_end": 751.12,
+      "text": "€25,",
+      "acceptable_actions": [
+        {
+          "action": "correct_text",
+          "target_start": 749.09,
+          "target_end": 751.12,
+          "text": "€25.00,"
+        },
+        {
+          "action": "correct_text",
+          "target_start": 753.17,
+          "target_end": 754.42,
+          "text": "€12.50."
+        },
+        {
+          "action": "correct_text",
+          "target_start": 753.17,
+          "target_end": 754.42,
+          "text": "€12.5."
+        }
+      ],
+      "required_visible_text": [
+        "sales price of twenty-five Euro,",
+        "production price of uh twelve and a half Euro."
+      ],
+      "counterfactuals": [
+        {
+          "action": "correct_text",
+          "target_start": 753.17,
+          "target_end": 754.42,
+          "text": "€25.",
+          "reason": "The sales amount cannot replace the separate production cost."
+        }
+      ],
+      "evidence_span": [
+        747.59,
+        754.42
+      ]
+    },
+    {
+      "source_id": "ami-is1008b",
+      "stratum": "open_next_edit",
+      "label_status": "known_edit",
+      "action": "correct_text",
+      "preservation": [
+        "Every original source audio interval and source offset",
+        "Unrelated words and original language",
+        "Speaker contributions, uncertainty, quantities and meaningful self-corrections"
+      ],
+      "id": "release-dev-clarification-question-punctuation",
+      "window": 3,
+      "focus_seconds": 818.7,
+      "scenario_ids": [
+        "R06",
+        "F04",
+        "N04",
+        "A02"
+      ],
+      "brief": "Proofread the meeting captions for mechanically duplicated punctuation. Retain every speaker’s words, questions and stated figures, even if a figure sounds surprising. Keep all original audio and timing.",
+      "decision_factor": "The publisher word recognition? already includes a question mark and also has a separate period annotation. Remove the doubled terminal punctuation while keeping the short clarification question, the overlapping presenter turn and the stated seventy-five to ninety percent.",
+      "adds_coverage": "A real publisher punctuation artifact coexists with a short listener question that must not be treated as a disposable backchannel. The overlapping speech is represented once.",
+      "parent_episode_id": "ami-is1008b-window-03",
+      "target_start": 817.09,
+      "text": "B: Speech recognition?\nD: between seventy-five",
+      "required_visible_text": [
+        "B: Speech recognition?.",
+        "D: between seventy-five",
+        "to ninety percent"
+      ],
+      "counterfactuals": [
+        {
+          "action": "correct_text",
+          "target_start": 817.09,
+          "text": "D: between seventy-five",
+          "reason": "The short listener turn is a clarification question, not a duplicated caption or meaningless filler."
+        }
+      ],
+      "evidence_span": [
+        813.24,
+        824.72
+      ]
+    },
+    {
+      "source_id": "ami-is1008b",
+      "stratum": "open_next_edit",
+      "label_status": "known_edit",
+      "action": "correct_text",
+      "preservation": [
+        "Every original source audio interval and source offset",
+        "Unrelated words and original language",
+        "Speaker contributions, uncertainty, quantities and meaningful self-corrections"
+      ],
+      "id": "release-dev-floor-taking-onset-cleanup",
+      "window": 3,
+      "focus_seconds": 745.3,
+      "scenario_ids": [
+        "M01",
+        "F04",
+        "S01",
+        "A02"
+      ],
+      "brief": "Prepare readable captions that preserve how participants take the floor. Clean an abandoned word onset only when its completed continuation is visible. Keep interrupted contributions unfinished instead of inventing their ending, and retain every audio interval.",
+      "decision_factor": "C starts S then completes the request as ’scuse me for one sec while D is speaking. The redundant S onset can be removed from display; C’s request and D’s interrupted to have a s must remain.",
+      "adds_coverage": "Natural floor-taking interruption with a small display cleanup; removing the short listener turn would change the turn-taking record.",
+      "parent_episode_id": "ami-is1008b-window-03",
+      "target_start": 744.38,
+      "text": "C: 'scuse\nD: to have a s",
+      "acceptable_actions": [
+        {
+          "action": "correct_text",
+          "target_start": 744.38,
+          "text": "C: 'Scuse\nD: to have a s"
+        }
+      ],
+      "required_visible_text": [
+        "C: S 'scuse",
+        "D: to have a s",
+        "me for one sec."
+      ],
+      "counterfactuals": [
+        {
+          "action": "correct_text",
+          "target_start": 744.38,
+          "text": "D: to have a s",
+          "reason": "Erasing the request to pause changes why the presenter stops and restarts."
+        }
+      ],
+      "evidence_span": [
+        741.75,
+        747.92
+      ]
+    },
+    {
+      "source_id": "ami-is1008b",
+      "stratum": "open_next_edit",
+      "label_status": "known_edit",
+      "action": "correct_text",
+      "preservation": [
+        "Every original source audio interval and source offset",
+        "Unrelated words and original language",
+        "Speaker contributions, uncertainty, quantities and meaningful self-corrections"
+      ],
+      "id": "release-dev-publisher-acronym-notation",
+      "window": 4,
+      "focus_seconds": 1116.23,
+      "scenario_ids": [
+        "R02",
+        "M03"
+      ],
+      "brief": "Render explicitly letter-spelled company acronyms in ordinary acronym spelling in the captions. Leave names, wording and spoken grammar alone, and preserve all original audio and timing.",
+      "decision_factor": "The publisher token I_B_M_ denotes the explicitly spelled company acronym in Intel or I_B_M_; its underscore encoding should be displayed as IBM, without expanding or translating the company name.",
+      "adds_coverage": "A natural publisher notation conversion with a named-company context, separate from manufactured ASR error repair.",
+      "parent_episode_id": "ami-is1008b-window-04",
+      "target_start": 1116.23,
+      "text": "IBM,",
+      "required_visible_text": [
+        "companies like uh Intel or I_B_M_,"
+      ],
+      "evidence_span": [
+        1112.92,
+        1117.39
+      ]
+    },
+    {
+      "source_id": "ami-is1008b",
+      "stratum": "open_next_edit",
+      "label_status": "known_edit",
+      "action": "correct_text",
+      "preservation": [
+        "Every original source audio interval and source offset",
+        "Unrelated words and original language",
+        "Speaker contributions, uncertainty, quantities and meaningful self-corrections"
+      ],
+      "id": "release-dev-self-correction-retained",
+      "window": 5,
+      "focus_seconds": 1463.8,
+      "scenario_ids": [
+        "M01",
+        "S04"
+      ],
+      "brief": "Make the displayed design discussion easier to read by removing isolated planning sounds. Preserve how the proposal changes as the speaker revises it, including the revised choice. Keep all original audio and timing.",
+      "decision_factor": "Remove um inside existing um buttons from display. The next sentence changes limit to minimum, sorry; preserving that correction records the speaker’s final recommendation rather than silently keeping the first formulation.",
+      "adds_coverage": "Display cleanup beside a natural meaning-bearing self-correction, with the change in recommendation retained.",
+      "parent_episode_id": "ami-is1008b-window-05",
+      "target_start": 1460.13,
+      "target_end": 1461.29,
+      "text": "buttons.",
+      "required_visible_text": [
+        "existing um buttons.",
+        "a limit, or to a minimum, sorry,"
+      ],
+      "counterfactuals": [
+        {
+          "action": "correct_text",
+          "target_start": 1464.85,
+          "target_end": 1467.07,
+          "text": "limit,",
+          "reason": "Keeping only limit drops the speaker’s actual correction to minimum."
+        }
+      ],
+      "evidence_span": [
+        1458.49,
+        1469.98
+      ]
+    },
+    {
+      "source_id": "ami-is1008b",
+      "stratum": "open_next_edit",
+      "label_status": "known_edit",
+      "action": "correct_text",
+      "preservation": [
+        "Every original source audio interval and source offset",
+        "Unrelated words and original language",
+        "Speaker contributions, uncertainty, quantities and meaningful self-corrections"
+      ],
+      "id": "release-dev-abandoned-start-display",
+      "window": 2,
+      "focus_seconds": 394,
+      "scenario_ids": [
+        "M01",
+        "S01",
+        "S03",
+        "N03"
+      ],
+      "brief": "Clean a short abandoned start from caption text where the completed restart is present. Preserve qualifiers and emphasis, and keep all original audio and source timing.",
+      "decision_factor": "The abandoned an an an a a size uh- restarts as a remote control that changes in size. Displaying the completed noun phrase is useful; perhaps and the emphatic very very remain. The smaller I I’m restart is also a valid next cleanup.",
+      "adds_coverage": "Natural restart cleanup for display with explicit separation from unqualified destructive audio deletion; nearby qualifiers and emphasis remain.",
+      "parent_episode_id": "ami-is1008b-window-02",
+      "target_start": 394.01,
+      "target_end": 396.86,
+      "text": "a remote control",
+      "acceptable_actions": [
+        {
+          "action": "correct_text",
+          "target_start": 389.15,
+          "target_end": 389.7,
+          "text": "I'm"
+        }
+      ],
+      "required_visible_text": [
+        "B: should consider perhaps",
+        "very very"
+      ],
+      "counterfactuals": [
+        {
+          "action": "correct_text",
+          "target_start": 391.91,
+          "text": "B: should",
+          "reason": "Removing consider perhaps makes the proposed design commitment more definite."
+        }
+      ],
+      "evidence_span": [
+        388.24,
+        404.5
+      ]
+    },
+    {
+      "source_id": "ami-is1008b",
+      "stratum": "open_next_edit",
+      "label_status": "known_edit",
+      "action": "correct_text",
+      "preservation": [
+        "Every original source audio interval and source offset",
+        "Unrelated words and original language",
+        "Speaker contributions, uncertainty, quantities and meaningful self-corrections"
+      ],
+      "id": "release-dev-invitation-response-repeat",
+      "window": 5,
+      "focus_seconds": 1495,
+      "scenario_ids": [
+        "M01",
+        "S01",
+        "P04",
+        "F02"
+      ],
+      "brief": "Prepare readable captions of the invitation and feedback exchange. Remove clearly abandoned repeats from display text. Retain the response timing, qualifications and listener contributions, and keep all original audio.",
+      "decision_factor": "B repeats and with a planning sound before and ours. Clean the duplicated conjunction while preserving C’s invitation for questions, the interval before the response and C’s later Yep during B’s comment.",
+      "adds_coverage": "A useful text edit in a natural question-to-response interval; this is semantic preservation evidence, not proof that the intervening unannotated audio is silence or an eligible hard pacing contrast.",
+      "parent_episode_id": "ami-is1008b-window-05",
+      "target_start": 1502.76,
+      "target_end": 1504.07,
+      "text": "and",
+      "required_visible_text": [
+        "I don't know if you guys have any questions",
+        "seems very understandable.",
+        "C: Yep."
+      ],
+      "counterfactuals": [
+        {
+          "action": "correct_text",
+          "target_start": 1506.16,
+          "text": "B: direction,",
+          "reason": "The source’s brief requires listener contributions; the overlapping Yep should remain while an independent duplicated conjunction can be cleaned."
+        }
+      ],
+      "evidence_span": [
+        1489.89,
+        1507.7
+      ]
+    },
+    {
+      "source_id": "ami-is1008b",
+      "stratum": "reference_assisted",
+      "label_status": "known_preserve",
+      "action": "no_action",
+      "preservation": [
+        "Every original source audio interval and source offset",
+        "Unrelated words and original language",
+        "Speaker contributions, uncertainty, quantities and meaningful self-corrections"
+      ],
+      "id": "release-dev-requirement-agreement-verbatim",
+      "window": 2,
+      "focus_seconds": 462,
+      "scenario_ids": [
+        "F02",
+        "M02"
+      ],
+      "brief": "Prepare a verbatim record of the proposed product requirements and participants’ responses. Preserve the original words, hesitations, self-repairs and audio.",
+      "decision_factor": "B’s Yes immediately accepts the suggested unbreakable feature. The other visible disfluencies are recorded speech rather than evidence of recognition error, so the verbatim brief supports preservation.",
+      "adds_coverage": "An independent conversation’s explicit acceptance is retained as a response under a verbatim purpose. This is a purpose-driven preserve reference, not abstention caused by uncertain cut timing.",
+      "parent_episode_id": "ami-is1008b-window-02",
+      "required_visible_text": [
+        "unbreakable.",
+        "Yes."
+      ],
+      "evidence_span": [
+        454.54,
+        462.13
+      ]
+    }
+  ],
+  "coverage_sources": {
+    "R03": [
+      "sedong",
+      "calculus-0600-1500"
+    ],
+    "R04": [
+      "sedong",
+      "mit-1806-s2010-lecture01"
+    ],
+    "R02": [
+      "mit-6006-s2020-lecture01"
+    ],
+    "N02": [
+      "mit-6006-s2020-lecture01",
+      "shuka",
+      "ami-es2002a"
+    ],
+    "N04": [
+      "mit-6006-s2020-lecture01",
+      "shuka"
+    ],
+    "S02": [
+      "mit-6006-s2020-lecture01"
+    ],
+    "F03": [
+      "mit-6006-s2020-lecture01",
+      "calculus-2400-3300"
+    ],
+    "N03": [
+      "mit-6006-s2020-lecture01",
+      "sedong",
+      "mit-1806-s2010-lecture01",
+      "shuka"
+    ],
+    "S04": [
+      "mit-1806-s2010-lecture01",
+      "shuka"
+    ],
+    "M01": [
+      "shuka"
+    ],
+    "M02": [
+      "shuka"
+    ],
+    "R05": [
+      "shuka",
+      "calculus-2400-3300",
+      "calculus-0600-1500"
+    ],
+    "R08": [
+      "shuka",
+      "calculus-2400-3300"
+    ],
+    "R06": [
+      "mit-1806-s2010-lecture01"
+    ],
+    "R07": [
+      "calculus-2400-3300"
+    ],
+    "M03": [
+      "calculus-0600-1500",
+      "sedong",
+      "ami-es2002a"
+    ],
+    "F02": [
+      "ami-es2002a"
+    ],
+    "A02": [
+      "ami-es2002a"
+    ],
+    "C04": [
+      "ami-es2002a"
+    ],
+    "A03": [
+      "ami-es2002a"
+    ],
+    "S03": [
+      "ami-es2002a"
+    ],
+    "P04": [
+      "ami-es2002a"
+    ],
+    "P05": [
+      "ami-es2002a"
+    ],
+    "C06": [
+      "ami-es2002a"
+    ],
+    "R01": [
+      "sedong"
+    ],
+    "N01": [
+      "sedong"
+    ],
+    "C01": [
+      "sedong"
+    ],
+    "C03": [
+      "sedong"
+    ],
+    "C07": [
+      "sedong"
+    ]
+  },
+  "gaps": {
+    "F01": "One reviewed natural English filler deletion and symbolic tutorial behavior. Confidence-bearing natural display edits are independent of audio removal; no independent-dev acoustic deletion certificate.",
+    "F04": "Symbolic backchannel positive and natural preserve; natural removable backchannel acoustic qualification remains.",
+    "S01": "Symbolic bounded abandoned-start deletion and changed-fact preservation; natural restart candidate exceeds current2s cut policy.",
+    "P01": "Reviewed natural incidental gaps with declared thresholds and synthetic short-gap control. Natural threshold-equality transfer across independent recordings remains limited.",
+    "P02": "Executed symbolic next-pause applied-parameter inference and conflict policy; natural multi-pause transfer remains unqualified.",
+    "P03": "Symbolic full-removal positives in EN/KO. Natural AMI candidate withheld due to unresolved whistle annotation; no natural remove_silence quality claim.",
+    "P06": "Executed natural already-trimmed state and a synthetic gap shorter than the retained-duration preference are admitted; no repeated trim of unqualified new fragment boundaries.",
+    "A01": "Invalid native boundary and incomplete evidence are candidate eligibility exclusions, never invented no_action labels.",
+    "A02": "Natural simultaneous-speaker islands are retained and destructive cuts remain ineligible; no single-channel silence inference.",
+    "A03": "Native laughter and other event annotations are preserved. The zero-duration whistle blocks one proposed natural full-gap removal.",
+    "A04": "Four reviewed natural operations, still no generic audio classifier or full video-join certification.",
+    "C03": "Minimum cue duration and text/timeline preservation are verified. Broader reading-load versus display-duration tradeoffs are not established by the current minimum-duration cases.",
+    "C05": "V4 local split uses source-derived full-paragraph facts without pretending offscreen wording is visible. Cropped merge still requires complete semantic context and is excluded.",
+    "C06": "Cropped sentence evidence and native unfinished speech are preserved; missing content is not invented.",
+    "P04": "Eligible same-source pacing contrasts and declared-purpose episode now exist; they are authored preferences, not inferred universal ground truth.",
+    "P05": "Activity and comprehension preservation use transcript-visible instructions or factual supplied screen observations, not hidden visual knowledge.",
+    "R08": "Colloquial/verbatim preservation is represented; independent dialect or unusual-name ambiguity is not established by hesitation cases and remains a coverage gap."
+  },
+  "include_calculus": true,
+  "regeneration_feedback": "artifacts/datasets/nep-release-v1/review-draft-005.json",
+  "include_ami": true,
+  "batch_design": "docs/plans/dataset-next-batch-v1.md",
+  "episodes": [
+    {
+      "id": "episode-accurate-lecture",
+      "protocol": 1,
+      "status": "partial",
+      "remaining": [
+        "Preserved board-writing pause not yet qualified."
+      ],
+      "source_id": "sedong",
+      "window": 2,
+      "brief": "커서 주변의 명백한 인식 오류 하나를 표시 텍스트에서 수정하세요. 음성은 보존하세요. 이 장면에서 검토자가 확인한 그림의 표기는 '실전화기'이며, 두 종이컵을 실로 연결한 물건입니다. 조사와 문장 형식은 유지하세요.",
+      "stratum": "reference_assisted",
+      "preservation": [
+        "Every original mixed-audio interval, exactly once",
+        "All speakers and meaning-bearing response words",
+        "Original language, uncertainty, numbers and non-speech events"
+      ],
+      "steps": [
+        {
+          "id": "episode-lecture-expiry",
+          "source_id": "sedong",
+          "window": 2,
+          "scenario_family": "transcript_repair",
+          "focus_seconds": 222.74,
+          "brief": "커서 주변의 명백한 인식 오류 하나를 표시 텍스트에서 수정하세요. 음성은 보존하세요. 이 장면에서 검토자가 확인한 그림의 표기는 '실전화기'이며, 두 종이컵을 실로 연결한 물건입니다. 조사와 문장 형식은 유지하세요.",
+          "action": "correct_text",
+          "target_start": 220.84,
+          "target_end": 221.36,
+          "text": "실전화기라고",
+          "alternative_targets": [
+            {
+              "start_seconds": 221.88,
+              "text": "실전화기라고."
+            }
+          ],
+          "purpose": "그림의 용어를 근거로 실제 인식 오류 수정",
+          "decision_factor": "모델에도 제공한 장면의 표기와 주변 질문",
+          "adds_coverage": "Natural ASR error with explicit visual-to-text evidence; one example only, not repeated lexical siblings.",
+          "evidence": [
+            {
+              "file": "sedong-string-telephone.jpg",
+              "seconds": 222,
+              "observation": "실전화기 label and two cups connected by a string"
+            }
+          ],
+          "scenario_ids": [
+            "R01"
+          ],
+          "record_case": false,
+          "outcome": "expired",
+          "acceptable_actions": [
+            {
+              "action": "correct_text",
+              "target_start": 228.14,
+              "text": "실전화기가"
+            }
+          ]
+        },
+        {
+          "id": "episode-lecture-term-after-expiry",
+          "source_id": "sedong",
+          "window": 2,
+          "scenario_family": "transcript_repair",
+          "focus_seconds": 222.74,
+          "brief": "커서 주변의 명백한 인식 오류 하나를 표시 텍스트에서 수정하세요. 음성은 보존하세요. 이 장면에서 검토자가 확인한 그림의 표기는 '실전화기'이며, 두 종이컵을 실로 연결한 물건입니다. 조사와 문장 형식은 유지하세요.",
+          "action": "correct_text",
+          "target_start": 220.84,
+          "target_end": 221.36,
+          "text": "실전화기라고",
+          "alternative_targets": [
+            {
+              "start_seconds": 221.88,
+              "text": "실전화기라고."
+            }
+          ],
+          "purpose": "그림의 용어를 근거로 실제 인식 오류 수정",
+          "decision_factor": "모델에도 제공한 장면의 표기와 주변 질문",
+          "adds_coverage": "Natural ASR error with explicit visual-to-text evidence; one example only, not repeated lexical siblings.",
+          "evidence": [
+            {
+              "file": "sedong-string-telephone.jpg",
+              "seconds": 222,
+              "observation": "실전화기 label and two cups connected by a string"
+            }
+          ],
+          "scenario_ids": [
+            "R01"
+          ],
+          "outcome": "accepted",
+          "feedback_ids": [
+            "H05"
+          ],
+          "acceptable_actions": [
+            {
+              "action": "correct_text",
+              "target_start": 228.14,
+              "text": "실전화기가"
+            }
+          ]
+        },
+        {
+          "id": "episode-lecture-consistent-second-occurrence",
+          "focus_seconds": 222.74,
+          "action": "correct_text",
+          "decision_factor": "A real committed correction supplies the term spelling for a second occurrence while preserving the sentence-ending punctuation.",
+          "adds_coverage": "A real committed correction supplies the term spelling for a second occurrence while preserving the sentence-ending punctuation.",
+          "scenario_ids": [
+            "R01"
+          ],
+          "target_start": 221.88,
+          "text": "실전화기라고.",
+          "brief": "커서 주변에서 최근에 확인하여 적용한 전문 용어 표기를 일관되게 사용하세요. 조사와 문장부호, 구어체와 모든 음성을 유지하세요. 독립적인 근거가 없는 다른 이름을 추측하지 마세요.",
+          "outcome": "accepted",
+          "feedback_ids": [
+            "H09"
+          ],
+          "acceptable_actions": [
+            {
+              "action": "correct_text",
+              "target_start": 228.14,
+              "text": "실전화기가"
+            }
+          ]
+        },
+        {
+          "id": "episode-lecture-signed-value",
+          "source_id": "sedong",
+          "window": 6,
+          "scenario_family": "numbers_units_negation",
+          "focus_seconds": 949.88,
+          "brief": "수학 설명용 자막입니다. 커서 직전의 가중치 표현은 변수 W와 숫자로 간결하게 표기하되 조사와 음성은 유지하세요. 검토자가 이 장면의 회로도에서 확인한 값은 -1.5입니다. 마이너스 부호를 빠뜨리거나 값을 바꾸지 마세요.",
+          "action": "correct_text",
+          "target_start": 947.44,
+          "target_end": 948.58,
+          "text": "W -1.5는",
+          "purpose": "발화의 수치와 부호를 유지하는 자막 표기 정리",
+          "decision_factor": "수학 표기 목적과 모델에 제공한 -1.5 근거",
+          "adds_coverage": "Multi-item spoken-number normalization including real intervening gaps; no media deletion.",
+          "evidence": [
+            {
+              "file": "sedong-negative-weight.jpg",
+              "seconds": 950,
+              "observation": "Circuit diagram labels the bias connection -1.5"
+            }
+          ],
+          "scenario_ids": [
+            "N01",
+            "M03"
+          ],
+          "outcome": "accepted"
+        },
+        {
+          "id": "episode-lecture-final-sentence-boundary",
+          "source_id": "sedong",
+          "window": 6,
+          "scenario_family": "caption_segmentation",
+          "focus_seconds": 944.56,
+          "brief": "커서가 있는 자막 문단의 마지막 독립 문장 앞에 경계를 추가하세요. 각 결과 문단에 최소 1초의 표시 시간이 있고 텍스트가 남아 있어야 합니다. 단어, 화자, 음성 구간은 바꾸지 마세요. 문자 수에 따른 추가 자동 분할은 사용하지 않는 편집 상태입니다.",
+          "action": "split_paragraph",
+          "target_start": 945.18,
+          "purpose": "짧은 설명 문단의 마지막 독립 문장을 별도 자막으로 표시",
+          "decision_factor": "완전히 보이는 문단과 독립 문장, 양쪽의 충분한 길이",
+          "adds_coverage": "Natural ASR paragraph split with actual item timing; not a synthetic fixed-duration sentence.",
+          "scenario_ids": [
+            "C01",
+            "C03"
+          ],
+          "outcome": "accepted"
+        },
+        {
+          "id": "episode-lecture-caption-already-separated",
+          "focus_seconds": 945.18,
+          "action": "no_action",
+          "decision_factor": "The cursor moved into the newly separated single-sentence caption. There is no further independent sentence to split off there.",
+          "adds_coverage": "Stopping after a real split with cursor moved to the completed single-sentence caption; no stale-goal abstention.",
+          "scenario_ids": [
+            "C07"
+          ],
+          "brief": "커서가 있는 자막 문단의 마지막 독립 문장 앞에 경계를 추가하세요. 각 결과 문단에 최소 1초의 표시 시간이 있고 텍스트가 남아 있어야 합니다. 단어, 화자, 음성 구간은 바꾸지 마세요. 문자 수에 따른 추가 자동 분할은 사용하지 않는 편집 상태입니다.",
+          "window": 6,
+          "feedback_ids": [
+            "H09"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "episode-meeting-target-feedback",
+      "protocol": 3,
+      "status": "partial",
+      "remaining": [
+        "Interview-specific removable backchannel and qualified cut still missing."
+      ],
+      "source_id": "ami-es2002a",
+      "window": 4,
+      "brief": "Prepare a readable meeting transcript. Display euro amounts with the euro symbol and digits, preserving every spoken value and all audio. Do not change grammar, fillers, speaker labels or paragraph boundaries. Respect target-specific feedback; rejecting one amount does not ban formatting another.",
+      "stratum": "reference_assisted",
+      "preservation": [
+        "Every original mixed-audio interval, exactly once",
+        "All speakers and meaning-bearing response words",
+        "Original language, uncertainty, numbers and non-speech events"
+      ],
+      "steps": [
+        {
+          "id": "episode-meeting-revenue-format-dismissed",
+          "focus_seconds": 480.73,
+          "action": "correct_text",
+          "decision_factor": "Simulated rejected revenue formatting establishes a target-specific preference, not a gold correction.",
+          "adds_coverage": "Simulated rejected revenue formatting establishes a target-specific preference, not a gold correction.",
+          "scenario_ids": [
+            "N02"
+          ],
+          "target_start": 480.29,
+          "text": "€50 million.",
+          "target_end": 482.77,
+          "record_case": false,
+          "outcome": "dismissed",
+          "reason": "target"
+        },
+        {
+          "id": "episode-meeting-price-after-other-rejection",
+          "focus_seconds": 475.97,
+          "action": "correct_text",
+          "decision_factor": "The product price is still eligible under the explicit currency display profile after a different revenue target was dismissed.",
+          "adds_coverage": "The product price is still eligible under the explicit currency display profile after a different revenue target was dismissed.",
+          "scenario_ids": [
+            "N02",
+            "M03"
+          ],
+          "target_start": 475.72,
+          "target_end": 476.53,
+          "text": "€25,",
+          "outcome": "accepted",
+          "feedback_ids": [
+            "H02",
+            "H10"
+          ]
+        },
+        {
+          "id": "episode-meeting-cost-after-price",
+          "focus_seconds": 480.73,
+          "action": "correct_text",
+          "decision_factor": "The newly visible twelve fifty Euros is an eligible decimal monetary amount; preserving the dismissed revenue target must not suppress this independent cost correction.",
+          "adds_coverage": "Changes from an integer product price to a spoken decimal cost, after the prior correction changes both aliases and local context.",
+          "scenario_ids": [
+            "N02"
+          ],
+          "feedback_ids": [
+            "H02",
+            "H09",
+            "H10"
+          ],
+          "target_start": 490.79,
+          "target_end": 491.96,
+          "text": "€12.50,",
+          "outcome": "accepted"
+        }
+      ]
+    },
+    {
+      "id": "episode-verbatim-intent-change",
+      "protocol": 5,
+      "status": "completed_text_scope",
+      "source_id": "shuka",
+      "window": 4,
+      "brief": "읽기 편한 표시용 자막을 만듭니다. 커서의 단어 맨 앞에 붙은 말더듬 조각은 표시 텍스트에서만 정리하세요. 완성된 단어와 조사는 유지하고 원래 음성, 단어 구간, 말투는 보존하세요. 음성에서 일부 음절을 잘라내는 요청이 아닙니다.",
+      "stratum": "reference_assisted",
+      "preservation": [
+        "Every original mixed-audio interval, exactly once",
+        "All speakers and meaning-bearing response words",
+        "Original language, uncertainty, numbers and non-speech events"
+      ],
+      "steps": [
+        {
+          "id": "episode-intent-readable-cleanup",
+          "source_id": "shuka",
+          "window": 4,
+          "scenario_family": "transcript_vs_media",
+          "focus_seconds": 1347.024,
+          "brief": "읽기 편한 표시용 자막을 만듭니다. 커서의 단어 맨 앞에 붙은 말더듬 조각은 표시 텍스트에서만 정리하세요. 완성된 단어와 조사는 유지하고 원래 음성, 단어 구간, 말투는 보존하세요. 음성에서 일부 음절을 잘라내는 요청이 아닙니다.",
+          "action": "correct_text",
+          "target_start": 1347.024,
+          "target_end": 1347.844,
+          "text": "음모론도",
+          "purpose": "한 단어 안의 주저 조각을 자막에서만 정리",
+          "decision_factor": "텍스트 정리 목적과 음성 보존 요구",
+          "adds_coverage": "Real word-initial disfluency; tests the distinction between text replacement and an unsupported within-word audio cut.",
+          "scenario_ids": [
+            "M01"
+          ],
+          "outcome": "accepted",
+          "undo": true
+        },
+        {
+          "id": "episode-intent-after-undo",
+          "focus_seconds": 1347.024,
+          "action": "no_action",
+          "decision_factor": "The user undid the one local display cleanup; the same suggestion must not repeat in unchanged context.",
+          "adds_coverage": "The user undid the one local display cleanup; the same suggestion must not repeat in unchanged context.",
+          "scenario_ids": [
+            "M01",
+            "M02"
+          ],
+          "feedback_ids": [
+            "H04"
+          ],
+          "brief": "읽기 편한 표시용 자막을 만듭니다. 커서의 단어 맨 앞에 붙은 말더듬 조각은 표시 텍스트에서만 정리하세요. 완성된 단어와 조사는 유지하고 원래 음성, 단어 구간, 말투는 보존하세요. 음성에서 일부 음절을 잘라내는 요청이 아닙니다."
+        },
+        {
+          "id": "episode-intent-verbatim-switch",
+          "focus_seconds": 1347.024,
+          "action": "no_action",
+          "decision_factor": "After the undo the current brief explicitly switches to a verbatim record; the earlier readable-caption preference must not override it.",
+          "adds_coverage": "After the undo the current brief explicitly switches to a verbatim record; the earlier readable-caption preference must not override it.",
+          "scenario_ids": [
+            "R08",
+            "M02"
+          ],
+          "feedback_ids": [
+            "H07"
+          ],
+          "brief": "이 작업은 말더듬과 망설임을 포함한 축어록입니다. 소리와 표현을 그대로 남기고 별도의 독립적인 근거로 확인된 인식 오류만 수정하세요. 읽기 편하게 하려고 구어체를 다듬지 마세요."
+        }
+      ]
+    },
+    {
+      "id": "episode-competing-calculus",
+      "protocol": 6,
+      "status": "completed_supported_path",
+      "source_id": "calculus-0600-1500",
+      "window": 1,
+      "brief": "수학 강의의 읽기용 자막입니다. 눈에 띄는 분수 표현의 명백한 조사 오류를 최소한으로 고치고, 변수 이름 엑스와 와이는 X와 Y로 표시하세요. 한국어 조사와 읽는 순서, 말투와 모든 음성을 보존하세요. 보이는 곳에서 유용한 교정 하나만 제안하세요. 여러 곳이 타당하면 특정 순서를 강요하지 않습니다.",
+      "stratum": "reference_assisted",
+      "preservation": [
+        "Every original mixed-audio interval, exactly once",
+        "All speakers and meaning-bearing response words",
+        "Original language, uncertainty, numbers and non-speech events"
+      ],
+      "steps": [
+        {
+          "id": "episode-competing-calculus-1",
+          "focus_seconds": 1029.568,
+          "action": "correct_text",
+          "decision_factor": "Several visible repairs are acceptable; the next state is reconstructed after one actual acceptance, so an already applied target disappears.",
+          "adds_coverage": "Several visible repairs are acceptable; the next state is reconstructed after one actual acceptance, so an already applied target disappears.",
+          "scenario_ids": [
+            "R03",
+            "R05",
+            "M03"
+          ],
+          "target_start": 1028.608,
+          "text": "X의",
+          "acceptable_actions": [
+            {
+              "action": "correct_text",
+              "target_start": 1029.568,
+              "text": "분의"
+            },
+            {
+              "action": "correct_text",
+              "target_start": 1030.048,
+              "text": "Y의"
+            },
+            {
+              "action": "correct_text",
+              "target_start": 1034.608,
+              "text": "X가"
+            }
+          ],
+          "outcome": "accepted",
+          "feedback_ids": []
+        },
+        {
+          "id": "episode-competing-calculus-2",
+          "focus_seconds": 1029.568,
+          "action": "correct_text",
+          "decision_factor": "Several visible repairs are acceptable; the next state is reconstructed after one actual acceptance, so an already applied target disappears.",
+          "adds_coverage": "Several visible repairs are acceptable; the next state is reconstructed after one actual acceptance, so an already applied target disappears.",
+          "scenario_ids": [
+            "R03",
+            "R05",
+            "M03"
+          ],
+          "target_start": 1029.568,
+          "text": "분의",
+          "acceptable_actions": [
+            {
+              "action": "correct_text",
+              "target_start": 1030.048,
+              "text": "Y의"
+            },
+            {
+              "action": "correct_text",
+              "target_start": 1034.608,
+              "text": "X가"
+            }
+          ],
+          "outcome": "accepted",
+          "feedback_ids": [
+            "H09"
+          ]
+        },
+        {
+          "id": "episode-competing-calculus-3",
+          "focus_seconds": 1029.568,
+          "action": "correct_text",
+          "decision_factor": "Several visible repairs are acceptable; the next state is reconstructed after one actual acceptance, so an already applied target disappears.",
+          "adds_coverage": "Several visible repairs are acceptable; the next state is reconstructed after one actual acceptance, so an already applied target disappears.",
+          "scenario_ids": [
+            "R03",
+            "R05",
+            "M03"
+          ],
+          "target_start": 1030.048,
+          "text": "Y의",
+          "acceptable_actions": [
+            {
+              "action": "correct_text",
+              "target_start": 1034.608,
+              "text": "X가"
+            }
+          ],
+          "outcome": "accepted",
+          "feedback_ids": [
+            "H09"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "episode-meeting-audio-pacing",
+      "protocol": 2,
+      "status": "completed_reviewed_audio_path",
+      "source_id": "ami-es2002a",
+      "window": 1,
+      "brief": "Make an audio recap for colleagues who already know the project. Shorten incidental pauses above 1200 ms to 900 ms. Keep every spoken word, response and qualification; do not normalize the captions.",
+      "stratum": "open_next_edit",
+      "preservation": [
+        "Every source sample outside the exact reviewed removal interval",
+        "Unrelated words, qualification and response meaning",
+        "Original source offsets and speaker attribution"
+      ],
+      "remaining": [
+        "Independent English development meeting is acquired; natural audio filler/pause edits on it still need operation-specific qualification."
+      ],
+      "steps": [
+        {
+          "id": "episode-audio-opening-filler",
+          "focus_seconds": 55.98,
+          "brief": "Make a concise audio meeting recap. Remove expendable isolated planning fillers, preserving responses, qualifications and every substantive word. Do not normalize the display transcript.",
+          "action": "delete_span",
+          "target_start": 55.98,
+          "scenario_ids": [
+            "F01",
+            "A04",
+            "M02",
+            "A01"
+          ],
+          "decision_factor": "The isolated opening Um precedes the complete meeting introduction; retain well and the entire introduction.",
+          "adds_coverage": "First executed natural filler removal using reviewed source boundaries.",
+          "outcome": "accepted",
+          "ineligible_actions": [
+            {
+              "action": "delete_span",
+              "target_start": 55.98,
+              "target_end": 56.78,
+              "expected_error": "Reference endpoint does not match an original item.",
+              "reason": "A proposed cut ends inside the native this interval, so an arbitrary word-tail timestamp cannot become a legal target."
+            },
+            {
+              "action": "delete_span",
+              "target_start": 55.98,
+              "target_end": 56.69,
+              "expected_error": "Audio cuts require verified source boundaries.",
+              "reason": "The qualified Um operation cannot certify the following well boundary or authorize removing it."
+            }
+          ]
+        },
+        {
+          "id": "episode-audio-finance-too-slow-proposal",
+          "window": 4,
+          "focus_seconds": 470.66,
+          "brief": "Make an audio recap for colleagues who already know the project. Shorten incidental pauses above 1200 ms to 900 ms. Keep every spoken word, response and qualification; do not normalize the captions.",
+          "action": "trim_silence",
+          "target_start": 470.66,
+          "keep_ms": 1500,
+          "record_case": false,
+          "outcome": "modified",
+          "reason": "parameter",
+          "applied": {
+            "action": "trim_silence",
+            "target_start": 470.66,
+            "keep_ms": 900
+          },
+          "scenario_ids": [
+            "P02"
+          ]
+        },
+        {
+          "id": "episode-audio-after-modified-duration",
+          "window": 4,
+          "focus_seconds": 470.66,
+          "brief": "Make an audio recap for colleagues who already know the project. Shorten incidental pauses above 1200 ms to 900 ms. Keep every spoken word, response and qualification; do not normalize the captions.",
+          "action": "no_action",
+          "scenario_ids": [
+            "P06"
+          ],
+          "feedback_ids": [
+            "H03",
+            "H09"
+          ],
+          "decision_factor": "The prior proposed 1500 ms was actually modified to 900 ms. Both retained fragments total 900 ms, so shortening them again would violate the current threshold.",
+          "adds_coverage": "Actual source fragments, applied 900 ms history and modified feedback, rather than an invented preference sentence."
+        }
+      ]
+    },
+    {
+      "id": "episode-reaction-purpose-switch",
+      "protocol": 5,
+      "status": "completed_audio_intent_switch",
+      "source_id": "shuka",
+      "window": 1,
+      "brief": "개인적인 반응과 이야기의 재미를 살린 하이라이트를 만듭니다. 1200ms보다 긴 대기는 900ms로 줄이되 놀라운 전개를 받아들이는 표정과 다음 반응을 기다리는 박자는 원래 길이대로 살리세요. 모든 단어와 발언의 의미를 보존하세요. 화면 메모: 날짜별 등락률과 +17.9%가 적힌 차트가 계속 표시되고, 화자는 몸을 뒤로 기울였다가 다시 앞으로 옵니다.",
+      "stratum": "open_next_edit",
+      "preservation": [
+        "Every source sample outside the exact reviewed removal interval",
+        "Unrelated words, qualification and response meaning",
+        "Original source offsets and speaker attribution"
+      ],
+      "steps": [
+        {
+          "id": "episode-reaction-dismissed-cut",
+          "focus_seconds": 176.86,
+          "action": "trim_silence",
+          "target_start": 176.86,
+          "keep_ms": 900,
+          "record_case": false,
+          "outcome": "dismissed",
+          "reason": "preference",
+          "scenario_ids": [
+            "P04"
+          ]
+        },
+        {
+          "id": "episode-reaction-respects-dismissal",
+          "focus_seconds": 176.86,
+          "action": "no_action",
+          "scenario_ids": [
+            "P04",
+            "S03"
+          ],
+          "feedback_ids": [
+            "H01"
+          ],
+          "decision_factor": "Same source, purpose and dismissed proposal; do not repeat the shortening.",
+          "adds_coverage": "Verified cut is suppressed for a stated editorial preference, not acoustic failure.",
+          "artifact_evidence": [
+            {
+              "path": "artifacts/datasets/nep-release-v1/semantic-evidence-v1/shuka-reaction-contact.png",
+              "sha256": "110670196587f91e51b97534ffde3eb439a08d08828fa47908199692bfb1d501",
+              "input_observation": "화면 메모: 날짜별 등락률과 +17.9%가 적힌 차트가 계속 표시되고, 화자는 몸을 뒤로 기울였다가 다시 앞으로 옵니다.",
+              "origin": "agent_inspected_source_frames",
+              "source_seconds": [
+                174.5,
+                182.5
+              ]
+            }
+          ]
+        },
+        {
+          "id": "episode-reaction-recap-new-purpose",
+          "focus_seconds": 176.86,
+          "brief": "수치 중심의 짧은 복습 클립을 만듭니다. 1200ms보다 긴 대기는 900ms로 줄이고 모든 단어와 발언의 의미를 보존하세요. 표정 연기의 원래 길이를 유지할 필요는 없습니다. 화면 메모: 날짜별 등락률과 +17.9%가 적힌 차트가 계속 표시되고, 화자는 몸을 뒤로 기울였다가 다시 앞으로 옵니다.",
+          "action": "trim_silence",
+          "target_start": 176.86,
+          "keep_ms": 900,
+          "scenario_ids": [
+            "P04",
+            "S03"
+          ],
+          "feedback_ids": [
+            "H06",
+            "H07"
+          ],
+          "decision_factor": "A new numeric recap purpose changes the prior preference fingerprint; the old reaction-version rejection is no longer a blanket veto.",
+          "adds_coverage": "The exact same acoustic candidate becomes useful under the new brief; actual rejection ledger is retained.",
+          "outcome": "accepted",
+          "artifact_evidence": [
+            {
+              "path": "artifacts/datasets/nep-release-v1/semantic-evidence-v1/shuka-reaction-contact.png",
+              "sha256": "110670196587f91e51b97534ffde3eb439a08d08828fa47908199692bfb1d501",
+              "input_observation": "화면 메모: 날짜별 등락률과 +17.9%가 적힌 차트가 계속 표시되고, 화자는 몸을 뒤로 기울였다가 다시 앞으로 옵니다.",
+              "origin": "agent_inspected_source_frames",
+              "source_seconds": [
+                174.5,
+                182.5
+              ]
+            }
+          ]
+        },
+        {
+          "id": "episode-reaction-recap-complete",
+          "focus_seconds": 176.86,
+          "action": "no_action",
+          "scenario_ids": [
+            "P06"
+          ],
+          "feedback_ids": [
+            "H09"
+          ],
+          "decision_factor": "The 900 ms keep duration is already applied as two 450 ms fragments; do not keep removing timing.",
+          "adds_coverage": "Next state after a real trim, with original offsets preserved across the removed interval.",
+          "artifact_evidence": [
+            {
+              "path": "artifacts/datasets/nep-release-v1/semantic-evidence-v1/shuka-reaction-contact.png",
+              "sha256": "110670196587f91e51b97534ffde3eb439a08d08828fa47908199692bfb1d501",
+              "input_observation": "화면 메모: 날짜별 등락률과 +17.9%가 적힌 차트가 계속 표시되고, 화자는 몸을 뒤로 기울였다가 다시 앞으로 옵니다.",
+              "origin": "agent_inspected_source_frames",
+              "source_seconds": [
+                174.5,
+                182.5
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "episode-confidence-preserving-caption",
+      "protocol": 4,
+      "status": "completed_text_confidence_path",
+      "source_id": "ami-es2002a",
+      "window": 3,
+      "brief": "Edit only the paragraph containing the cursor; preserve all other paragraphs and all paragraph boundaries. Prepare readable captions for a short documentary of participants thinking aloud. Remove obvious planning clutter from display text, but keep how definite or tentative each statement is, as well as responses and self-corrections. Keep all original audio and timing.",
+      "stratum": "open_next_edit",
+      "preservation": [
+        "Every source sample outside the exact reviewed removal interval",
+        "Unrelated words, qualification and response meaning",
+        "Original source offsets and speaker attribution"
+      ],
+      "remaining": [
+        "Natural audio filler removal within a confidence-bearing answer is not acoustically qualified."
+      ],
+      "steps": [
+        {
+          "id": "episode-confidence-clean-leading-filler",
+          "focus_seconds": 321.53,
+          "action": "correct_text",
+          "target_start": 318.58,
+          "target_end": 321.53,
+          "text": "Well, anyway,",
+          "scenario_ids": [
+            "M01",
+            "S04",
+            "F03"
+          ],
+          "decision_factor": "Clean the standalone planning lead-in in the display only, keeping I do not know and the tentative improvised choice.",
+          "adds_coverage": "Readability edit coexists with a confidence-bearing phrase that must remain.",
+          "counterfactuals": [
+            {
+              "action": "correct_text",
+              "target_start": 321.53,
+              "reason": "Dropping I do not know and just makes the improvised answer read more definite.",
+              "target_end": 324.11,
+              "text": "It's the first animal I can think off the top of my head."
+            }
+          ],
+          "outcome": "accepted",
+          "difficulty_mechanism": "A useful cleanup and a tempting confidence-damaging cleanup are both contract-valid.",
+          "acceptable_actions": [
+            {
+              "action": "correct_text",
+              "target_start": 324.11,
+              "target_end": 325.43,
+              "text": "Yes."
+            }
+          ]
+        },
+        {
+          "id": "episode-confidence-clean-next-filler",
+          "focus_seconds": 321.53,
+          "action": "correct_text",
+          "scenario_ids": [
+            "S04",
+            "F03",
+            "M02"
+          ],
+          "feedback_ids": [
+            "H09"
+          ],
+          "decision_factor": "The leading filler is already cleaned, but the next Um before Yes remains visible. Clean that display filler while keeping the tentative explanation and the affirmative Yes.",
+          "adds_coverage": "Preserving uncertainty does not mean abstaining when another harmless caption cleanup is visible.",
+          "counterfactuals": [
+            {
+              "action": "correct_text",
+              "target_start": 321.53,
+              "reason": "Dropping I do not know and just makes the improvised answer read more definite.",
+              "target_end": 324.11,
+              "text": "It's the first animal I can think off the top of my head."
+            }
+          ],
+          "difficulty_mechanism": "History favors cleanup but the remaining phrase changes confidence.",
+          "target_start": 324.11,
+          "target_end": 325.43,
+          "text": "Yes.",
+          "outcome": "accepted"
+        },
+        {
+          "id": "episode-confidence-after-both-cleanups",
+          "focus_seconds": 321.53,
+          "action": "no_action",
+          "scenario_ids": [
+            "S04",
+            "F03",
+            "M02"
+          ],
+          "feedback_ids": [
+            "H09"
+          ],
+          "decision_factor": "Both isolated display fillers are already cleaned. I do not know and just the first animal express a tentative choice; do not remove them as clutter.",
+          "adds_coverage": "A real stopping point after two useful cleanups, with the confidence-damaging rewrite still contract-valid.",
+          "counterfactuals": [
+            {
+              "action": "correct_text",
+              "target_start": 321.53,
+              "reason": "Dropping I do not know and just makes the improvised answer read more definite.",
+              "target_end": 324.11,
+              "text": "It's the first animal I can think off the top of my head."
+            }
+          ],
+          "difficulty_mechanism": "Repeated accepted filler cleanup is not a license to erase uncertainty."
+        }
+      ]
+    },
+    {
+      "id": "episode-scripted-tutorial-pacing",
+      "protocol": 2,
+      "status": "completed_symbolic_behavior_path",
+      "remaining": [
+        "Natural multiple-pause applied-preference transfer needs additional acoustic qualifications."
+      ],
+      "source_id": "script-en-location-audio",
+      "window": 1,
+      "brief": "Work only on the paragraph containing the cursor. Keep its original words and paragraph grouping. For the concise setup tutorial, shorten incidental gaps above 1200 ms using the applied retained duration from the recent comparable pacing edit. Preserve time used for the demonstrated sound and the learner to hear it; do not infer an eligibility threshold from history.",
+      "stratum": "open_next_edit",
+      "preservation": [
+        "Every symbolic interval outside the declared edit",
+        "Substantive wording, uncertainty, speaker turns and original language"
+      ],
+      "steps": [
+        {
+          "id": "script-tutorial-opening-filler",
+          "source_id": "script-en-location-audio",
+          "window": 1,
+          "focus_seconds": 0.0,
+          "brief": "Make a concise tutorial. In the paragraph containing the cursor, remove the isolated planning filler and preserve all substantive speech and the caption grouping.",
+          "action": "delete_span",
+          "scenario_ids": [
+            "F01",
+            "M02"
+          ],
+          "decision_factor": "A symbolic isolated planning filler before a complete instruction; boundaries are algebraic, not heard.",
+          "adds_coverage": "A symbolic isolated planning filler before a complete instruction; boundaries are algebraic, not heard.",
+          "stratum": "open_next_edit",
+          "label_status": "known_edit",
+          "parent_episode_id": "script-en-location-audio",
+          "preservation": [
+            "Every symbolic interval outside the declared edit",
+            "Substantive wording, uncertainty, speaker turns and original language"
+          ],
+          "recipe_version": "nep-release-v1-recipe-7-d4",
+          "target_start": 0.0,
+          "outcome": "accepted"
+        },
+        {
+          "id": "script-tutorial-parameter-modified",
+          "focus_seconds": 6.57,
+          "brief": "Work only on the paragraph containing the cursor. Keep its original words and paragraph grouping. Shorten the incidental gap above 1200 ms to 500 ms.",
+          "action": "trim_silence",
+          "target_start": 6.57,
+          "keep_ms": 500,
+          "applied": {
+            "action": "trim_silence",
+            "target_start": 6.57,
+            "keep_ms": 900
+          },
+          "outcome": "modified",
+          "reason": "parameter",
+          "record_case": false,
+          "scenario_ids": [
+            "P02"
+          ]
+        },
+        {
+          "id": "script-tutorial-next-applied-duration",
+          "source_id": "script-en-location-audio",
+          "window": 1,
+          "focus_seconds": 15.01,
+          "brief": "Work only on the paragraph containing the cursor. Keep its original words and paragraph grouping. For the concise setup tutorial, shorten incidental gaps above 1200 ms using the applied retained duration from the recent comparable pacing edit. Preserve time used for the demonstrated sound and the learner to hear it; do not infer an eligibility threshold from history.",
+          "action": "trim_silence",
+          "scenario_ids": [
+            "P02"
+          ],
+          "decision_factor": "The last proposal was 500 ms, but the user applied 900 ms. This is a later untouched comparable gap, not an already-trimmed target.",
+          "adds_coverage": "The last proposal was 500 ms, but the user applied 900 ms. This is a later untouched comparable gap, not an already-trimmed target.",
+          "stratum": "open_next_edit",
+          "label_status": "known_edit",
+          "parent_episode_id": "script-en-location-audio",
+          "preservation": [
+            "Every symbolic interval outside the declared edit",
+            "Substantive wording, uncertainty, speaker turns and original language"
+          ],
+          "recipe_version": "nep-release-v1-recipe-7-d4",
+          "target_start": 15.01,
+          "keep_ms": 900,
+          "outcome": "accepted",
+          "feedback_ids": [
+            "H03"
+          ],
+          "required_visible_text": [
+            "Next open the gain control.",
+            "Lower it"
+          ],
+          "counterfactuals": [
+            {
+              "action": "trim_silence",
+              "target_start": 15.01,
+              "keep_ms": 500,
+              "reason": "Copies the rejected proposed value rather than the actually applied value."
+            }
+          ]
+        },
+        {
+          "id": "script-tutorial-listen-before-next-step",
+          "source_id": "script-en-location-audio",
+          "window": 1,
+          "focus_seconds": 25.29,
+          "brief": "Work only on the paragraph containing the cursor. Keep its original words and paragraph grouping. For the concise setup tutorial, shorten incidental gaps above 1200 ms using the applied retained duration from the recent comparable pacing edit. Preserve time used for the demonstrated sound and the learner to hear it; do not infer an eligibility threshold from history.",
+          "action": "no_action",
+          "scenario_ids": [
+            "P04",
+            "P05"
+          ],
+          "decision_factor": "The same eligible timing as incidental pauses is retained because the instruction asks the listener to hear and compare the demonstrated click.",
+          "adds_coverage": "The same eligible timing as incidental pauses is retained because the instruction asks the listener to hear and compare the demonstrated click.",
+          "stratum": "open_next_edit",
+          "label_status": "known_preserve",
+          "parent_episode_id": "script-en-location-audio",
+          "preservation": [
+            "Every symbolic interval outside the declared edit",
+            "Substantive wording, uncertainty, speaker turns and original language"
+          ],
+          "recipe_version": "nep-release-v1-recipe-7-d4",
+          "required_visible_text": [
+            "listen for the click",
+            "compare it"
+          ],
+          "counterfactuals": [
+            {
+              "action": "trim_silence",
+              "target_start": 25.29,
+              "keep_ms": 900,
+              "reason": "A history-only rule erases the listening interval required by this instruction."
+            }
+          ]
+        },
+        {
+          "id": "script-tutorial-normal-short-pause",
+          "source_id": "script-en-location-audio",
+          "window": 1,
+          "focus_seconds": 33.91,
+          "brief": "Work only on the paragraph containing the cursor. Keep its original words and paragraph grouping. For the concise setup tutorial, shorten incidental gaps above 1200 ms using the applied retained duration from the recent comparable pacing edit. Preserve time used for the demonstrated sound and the learner to hear it; do not infer an eligibility threshold from history.",
+          "action": "no_action",
+          "scenario_ids": [
+            "P01",
+            "P06"
+          ],
+          "decision_factor": "The current 350 ms transition is below the explicit 1200 ms threshold; applied 900 ms history does not justify lengthening it.",
+          "adds_coverage": "The current 350 ms transition is below the explicit 1200 ms threshold; applied 900 ms history does not justify lengthening it.",
+          "stratum": "open_next_edit",
+          "label_status": "known_preserve",
+          "parent_episode_id": "script-en-location-audio",
+          "preservation": [
+            "Every symbolic interval outside the declared edit",
+            "Substantive wording, uncertainty, speaker turns and original language"
+          ],
+          "recipe_version": "nep-release-v1-recipe-7-d4",
+          "required_visible_text": [
+            "The setup is ready."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "episode-scripted-conflicting-pacing",
+      "protocol": 2,
+      "status": "completed_conflict_policy_path",
+      "remaining": [],
+      "source_id": "script-en-location-audio",
+      "window": 1,
+      "brief": "Work only on the paragraph containing the cursor. Keep its original words and paragraph grouping. Tighten incidental waiting only when recent comparable applied pacing edits agree on a retained duration. When those decisions conflict, keep the current pause pending a specific choice; do not invent a duration or assume the latest edit was a global rule.",
+      "stratum": "open_next_edit",
+      "preservation": [
+        "Every symbolic interval outside the declared edit",
+        "Substantive wording, uncertainty, speaker turns and original language"
+      ],
+      "steps": [
+        {
+          "id": "script-conflict-history-1",
+          "focus_seconds": 6.57,
+          "brief": "Work only on the paragraph containing the cursor. Keep its original words and paragraph grouping. For this incidental transition, retain 500 ms.",
+          "action": "trim_silence",
+          "target_start": 6.57,
+          "keep_ms": 500,
+          "outcome": "accepted",
+          "record_case": false,
+          "scenario_ids": [
+            "P02"
+          ]
+        },
+        {
+          "id": "script-conflict-history-2",
+          "focus_seconds": 15.01,
+          "brief": "Work only on the paragraph containing the cursor. Keep its original words and paragraph grouping. For this incidental transition, retain 1500 ms.",
+          "action": "trim_silence",
+          "target_start": 15.01,
+          "keep_ms": 1500,
+          "outcome": "accepted",
+          "record_case": false,
+          "scenario_ids": [
+            "P02"
+          ]
+        },
+        {
+          "id": "script-conflicting-pacing-needs-choice",
+          "source_id": "script-en-location-audio",
+          "window": 1,
+          "focus_seconds": 48.48,
+          "brief": "Work only on the paragraph containing the cursor. Keep its original words and paragraph grouping. Tighten incidental waiting only when recent comparable applied pacing edits agree on a retained duration. When those decisions conflict, keep the current pause pending a specific choice; do not invent a duration or assume the latest edit was a global rule.",
+          "action": "no_action",
+          "scenario_ids": [
+            "P02"
+          ],
+          "decision_factor": "Two executed comparable gaps retain 500 and 1500 ms with no global choice. The stated policy requires preserving this third gap until a choice is provided.",
+          "adds_coverage": "Two executed comparable gaps retain 500 and 1500 ms with no global choice. The stated policy requires preserving this third gap until a choice is provided.",
+          "stratum": "open_next_edit",
+          "label_status": "known_preserve",
+          "parent_episode_id": "script-en-location-audio",
+          "preservation": [
+            "Every symbolic interval outside the declared edit",
+            "Substantive wording, uncertainty, speaker turns and original language"
+          ],
+          "recipe_version": "nep-release-v1-recipe-7-d4",
+          "feedback_ids": [
+            "H08"
+          ],
+          "required_visible_text": [
+            "Finally select the headphone output."
+          ],
+          "counterfactuals": [
+            {
+              "action": "trim_silence",
+              "target_start": 48.48,
+              "keep_ms": 500,
+              "reason": "Invents a global preference from inconsistent local applied edits."
+            },
+            {
+              "action": "trim_silence",
+              "target_start": 48.48,
+              "keep_ms": 1500,
+              "reason": "Invents a global preference from inconsistent local applied edits."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "episode-scripted-interview-feedback",
+      "protocol": 3,
+      "status": "completed_symbolic_backchannel_path",
+      "remaining": [
+        "Natural interviewer backchannel deletion still lacks a qualified real-audio boundary."
+      ],
+      "source_id": "script-ko-field-interview",
+      "window": 1,
+      "brief": "커서가 있는 문단만 편집하세요. 다른 문단의 표현과 경계는 그대로 두세요. 연구자의 답변 중심으로 인터뷰 음성을 간결하게 편집합니다. 질문의 대답이나 불확실성, 논리 연결은 살리고, 없어도 질문과 답변의 해석이 달라지지 않는 진행자의 독립적인 맞장구만 삭제하세요. 전사 문구는 고치지 마세요.",
+      "stratum": "open_next_edit",
+      "preservation": [
+        "Every symbolic interval outside the declared edit",
+        "Substantive wording, uncertainty, speaker turns and original language"
+      ],
+      "steps": [
+        {
+          "id": "script-interview-backchannel-dismissed",
+          "source_id": "script-ko-field-interview",
+          "window": 1,
+          "focus_seconds": 15.86,
+          "brief": "커서가 있는 문단만 편집하세요. 다른 문단의 표현과 경계는 그대로 두세요. 연구자의 답변 중심으로 인터뷰 음성을 간결하게 편집합니다. 질문의 대답이나 불확실성, 논리 연결은 살리고, 없어도 질문과 답변의 해석이 달라지지 않는 진행자의 독립적인 맞장구만 삭제하세요. 전사 문구는 고치지 마세요.",
+          "action": "delete_span",
+          "scenario_ids": [
+            "F04"
+          ],
+          "decision_factor": "The interviewer 네 is an independent acknowledgment between two parts of the researcher explanation, not an answer to a question or an overlap island.",
+          "adds_coverage": "The interviewer 네 is an independent acknowledgment between two parts of the researcher explanation, not an answer to a question or an overlap island.",
+          "stratum": "open_next_edit",
+          "label_status": "known_edit",
+          "parent_episode_id": "script-ko-field-interview",
+          "preservation": [
+            "Every symbolic interval outside the declared edit",
+            "Substantive wording, uncertainty, speaker turns and original language"
+          ],
+          "recipe_version": "nep-release-v1-recipe-7-d4",
+          "target_start": 15.86,
+          "required_visible_text": [
+            "아직 모르겠습니다.",
+            "네.",
+            "그래서"
+          ],
+          "record_case": false,
+          "outcome": "dismissed",
+          "reason": "target"
+        },
+        {
+          "id": "script-interview-respects-backchannel-choice",
+          "source_id": "script-ko-field-interview",
+          "window": 1,
+          "focus_seconds": 15.86,
+          "brief": "커서가 있는 문단만 편집하세요. 다른 문단의 표현과 경계는 그대로 두세요. 연구자의 답변 중심으로 인터뷰 음성을 간결하게 편집합니다. 질문의 대답이나 불확실성, 논리 연결은 살리고, 없어도 질문과 답변의 해석이 달라지지 않는 진행자의 독립적인 맞장구만 삭제하세요. 전사 문구는 고치지 마세요.",
+          "action": "no_action",
+          "scenario_ids": [
+            "F04"
+          ],
+          "decision_factor": "The exact independent acknowledgment was dismissed in the same context; preserve it rather than globally prohibiting every other useful edit.",
+          "adds_coverage": "The exact independent acknowledgment was dismissed in the same context; preserve it rather than globally prohibiting every other useful edit.",
+          "stratum": "open_next_edit",
+          "label_status": "known_preserve",
+          "parent_episode_id": "script-ko-field-interview",
+          "preservation": [
+            "Every symbolic interval outside the declared edit",
+            "Substantive wording, uncertainty, speaker turns and original language"
+          ],
+          "recipe_version": "nep-release-v1-recipe-7-d4",
+          "feedback_ids": [
+            "H01"
+          ]
+        },
+        {
+          "id": "script-interview-correct-after-other-rejection",
+          "source_id": "script-ko-field-interview",
+          "window": 1,
+          "focus_seconds": 16.26,
+          "brief": "커서가 있는 문단만 편집하세요. 다른 문단의 표현과 경계는 그대로 두세요. 표준 띄어쓰기로 읽기 쉬운 표시 자막을 만드세요. 음성, 의미, 잠정적인 표현은 그대로 보존하세요. 거절한 맞장구는 다시 삭제하지 마세요.",
+          "action": "correct_text",
+          "scenario_ids": [
+            "R03",
+            "M01"
+          ],
+          "decision_factor": "A rejected acknowledgment cut does not prohibit the unrelated standard compound spelling 재검증; all audio remains.",
+          "adds_coverage": "A rejected acknowledgment cut does not prohibit the unrelated standard compound spelling 재검증; all audio remains.",
+          "stratum": "open_next_edit",
+          "label_status": "known_edit",
+          "parent_episode_id": "script-ko-field-interview",
+          "preservation": [
+            "Every symbolic interval outside the declared edit",
+            "Substantive wording, uncertainty, speaker turns and original language"
+          ],
+          "recipe_version": "nep-release-v1-recipe-7-d4",
+          "target_start": 16.69,
+          "target_end": 17.55,
+          "text": "재검증을",
+          "outcome": "accepted",
+          "feedback_ids": [
+            "H02",
+            "H10"
+          ]
+        }
+      ]
+    }
+  ],
+  "unexecuted_episode_protocols": [],
+  "superseded_static_cases": {
+    "source-ko-hesitation-text-only": "episode-intent-readable-cleanup"
+  },
+  "comparison_tokenizer_registry": "artifacts/datasets/nep-release-v1/comparison-tokenizers-v2/registry.json",
+  "case_overrides": {
+    "source-ko-string-telephone": {
+      "acceptable_actions": [
+        {
+          "action": "correct_text",
+          "target_start": 221.88,
+          "text": "실전화기라고."
+        },
+        {
+          "action": "correct_text",
+          "target_start": 228.14,
+          "text": "실전화기가"
+        }
+      ]
+    }
+  },
+  "reviewed_audio": "artifacts/datasets/nep-release-v1/reviewed-audio-v4/qualifications.json",
+  "additional_evidence": [
+    "data/manifests/audio-review-regeneration-v1.json",
+    "artifacts/datasets/nep-release-v1/semantic-evidence-v1/shuka-reaction-contact.png",
+    "data/manifests/semantic-source-evidence-v1.json",
+    "data/manifests/scripted-interactions-v1.json",
+    "data/derived/nep/scripted-interactions-v1/sources.json",
+    "artifacts/datasets/nep-release-v1/audits/final-test-protocol-d4-draft-v1.json",
+    "data/manifests/ami-dev-v1.json",
+    "artifacts/datasets/nep-release-v1/ami-dev-evidence-v1/recipe-fragment.json",
+    "artifacts/datasets/nep-release-v1/ami-dev-evidence-v1/case-source-evidence.json",
+    "artifacts/datasets/nep-release-v1/ami-dev-evidence-v1/cut-candidates-and-exclusions.json",
+    "artifacts/datasets/nep-release-v1/ami-dev-evidence-v1/source-import-audit.json",
+    "artifacts/datasets/nep-release-v1/ami-dev-evidence-v1/split-isolation-audit.json"
+  ],
+  "schema_version": 4,
+  "scripted_sources": "data/manifests/scripted-interactions-v1.json",
+  "test_protocol": "artifacts/datasets/nep-release-v1/audits/final-test-protocol-d4-draft-v1.json",
+  "include_ami_dev": true,
+  "d4_regeneration_note": "D4 independent input-first census of draft-011 found six affected references after v4 context expansion. Scope all three confidence episode states to the current paragraph and preserve paragraph boundaries; add the visible 228.14s 실전학이가→실전화기가 correction as an alternative in all three terminology states (and the unrecorded expiry proposal). Regenerate, never patch draft rows."
+}

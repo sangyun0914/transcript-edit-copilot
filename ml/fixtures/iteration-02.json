@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "question": "At the same 20-step budget, does a small mixed-action batch learn useful edits and recoverable STT-like corruptions while preserving abstention on unsupported reconstruction?",
+  "retained_manifest_sha256": "9164655eebb51c462cbb54a66eee7ba9d4b18a9d490d6ea199e515b8b0b938f3",
+  "reason_for_change": "Iteration 01 missed 5/6 development corrections and lost all three previously useful regression edits. Diagnose train fit and broaden evidence/action patterns before scaling.",
+  "groups": [
+    {
+      "id": "iteration02-microscopy", "split": "train",
+      "term": "현미경", "corrupt": "형미경", "tail": "초점을 맞춥니다.",
+      "truncated": ["표본을", "관찰합"], "reference": "표본을 관찰합니다.",
+      "fragmented": ["생", "태계"], "joined": "생태계",
+      "filler": "음", "start": "표본입니다.", "end": "확대합니다.", "keep_ms": 450,
+      "sentences": ["초점이 맞았습니다.", "표본을 옮깁니다."],
+      "merge": ["접안렌즈를", "조절합니다."],
+      "unknown_name": "이[불명]", "missing": "관찰 결과는 [누락]입니다.",
+      "unfinished": "이 표본을 다른 배율로 보면"
+    },
+    {
+      "id": "iteration02-cooking", "split": "train",
+      "term": "올리브유", "corrupt": "올리뷰유", "tail": "향을 확인합니다.",
+      "truncated": ["양파를", "넣", "볶습"], "reference": "양파를 넣고 볶습니다.",
+      "fragmented": ["조", "리법"], "joined": "조리법",
+      "filler": "어", "start": "재료입니다.", "end": "손질합니다.", "keep_ms": 650,
+      "sentences": ["물이 끓습니다.", "면을 넣습니다."],
+      "merge": ["간을", "확인합니다."],
+      "unknown_name": "박[불명]", "missing": "반죽은 [누락]분 동안 둡니다.",
+      "unfinished": "밀가루 대신 다른 재료를 넣으면"
+    },
+    {
+      "id": "iteration02-gardening", "split": "dev",
+      "term": "분갈이", "corrupt": "분가리", "tail": "시기를 확인합니다.",
+      "truncated": ["화분에", "흙", "채웁"], "reference": "화분에 흙을 채웁니다.",
+      "fragmented": ["배", "양토"], "joined": "배양토",
+      "filler": "저", "start": "모종입니다.", "end": "옮겨 심습니다.", "keep_ms": 550,
+      "sentences": ["새잎이 났습니다.", "햇빛을 조절합니다."],
+      "merge": ["뿌리를", "살펴봅니다."],
+      "unknown_name": "최[불명]", "missing": "물은 [누락]일마다 줍니다.",
+      "unfinished": "화분을 햇빛이 드는 곳에 놓으면"
+    }
+  ]
+}
