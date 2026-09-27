@@ -22,6 +22,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.status import HTTP_401_UNAUTHORIZED
 
 from .asr import LOCAL_SETUP, local_asr_available, scribe
+from .copilot import CopilotService, create_copilot_router
 from .models import (
     DownloadModelTask,
     LanguageDoesNotExist,
@@ -53,6 +54,10 @@ def token_auth(request: Request):
     if authorization != f"Bearer {AUTH_TOKEN}":
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Not authorized")
     return authorization
+
+
+app.state.copilot = CopilotService()
+app.include_router(create_copilot_router(token_auth))
 
 
 @app.on_event("startup")
