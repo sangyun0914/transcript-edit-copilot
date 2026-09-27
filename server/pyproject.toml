@@ -8,18 +8,22 @@ dependencies = [
     "fastapi>=0.135",
     "uvicorn[standard]>=0.42",
     "python-multipart>=0.0.22",
-    "soundfile>=0.13",
     "platformdirs>=4.9",
-    "vosk>=0.3.44, !=0.3.45",
     "requests>=2.33",
+    "httpx>=0.28",
+    "pyyaml>=6",
     "opentimelineio>=0.18",
     "pydantic>=2.12",
+]
+
+[project.optional-dependencies]
+local-asr = [
+    "soundfile>=0.13",
+    "vosk>=0.3.44, !=0.3.45",
     "numpy>=2.4",
     "scipy>=1.17",
-    "scikit-learn>=1.8",
     "torch>=2.11",
     "torchaudio>=2.11",
-    "speechbrain @ git+https://github.com/speechbrain/speechbrain.git@develop",
     "pyannote-audio>=3.1",
 ]
 

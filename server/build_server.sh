@@ -13,6 +13,6 @@ cd $GIT_ROOT
 rm -rf app/server
 mkdir -p app/server
 cd server
-uv export --no-hashes --no-dev -o requirements.txt
+uv export --locked --no-hashes --no-dev --extra local-asr -o requirements.txt
 pyoxidizer build --release
 cp -r build/*/release/install/* ../app/server/

@@ -4,13 +4,15 @@ import tempfile
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import TYPE_CHECKING, Dict, List
 from urllib.parse import urlparse
 from zipfile import ZipFile
 
 import requests
 import yaml
-from vosk import Model
+
+if TYPE_CHECKING:
+    from vosk import Model
 
 from .config import CACHE_DIR, DATA_DIR
 from .tasks import Task, tasks
@@ -106,11 +108,13 @@ class Models:
 
     def _load_model(self, model):
         if model.type == "transcription":
+            from vosk import Model
+
             return Model(str(model.path()))
         else:
             raise ModelTypeNotSupported()
 
-    def get(self, model_id: str) -> Union[Model]:
+    def get(self, model_id: str) -> "Model":
         model = self.get_model_description(model_id)
         if not model.is_downloaded():
             raise ModelNotDownloaded()

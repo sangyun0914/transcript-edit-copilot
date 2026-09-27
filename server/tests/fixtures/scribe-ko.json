@@ -1,0 +1,16 @@
+{
+  "language_code": "kor",
+  "language_probability": 0.99,
+  "text": "어 오늘은 데이타를 분석합니다. (웃음) 네. 다음으로 가죠.",
+  "words": [
+    {"text": "어", "type": "word", "start": 0.25, "end": 0.6, "speaker_id": "speaker_0", "logprob": -0.4},
+    {"text": " ", "type": "spacing", "start": 0.6, "end": 0.8},
+    {"text": "오늘은", "type": "word", "start": 0.8, "end": 1.1, "speaker_id": "speaker_0", "logprob": -0.1},
+    {"text": "데이타를", "type": "word", "start": 1.2, "end": 1.8, "speaker_id": "speaker_0"},
+    {"text": "분석합니다.", "type": "word", "start": 1.8, "end": 2.5, "speaker_id": "speaker_0"},
+    {"text": "(웃음)", "type": "audio_event", "start": 2.6, "end": 2.9, "speaker_id": "speaker_0"},
+    {"text": "네.", "type": "word", "start": 2.8, "end": 3.1, "speaker_id": "speaker_1"},
+    {"text": "다음으로", "type": "word", "start": 3.3, "end": 3.8, "speaker_id": "speaker_1"},
+    {"text": "가죠.", "type": "word", "start": 4.1, "end": 4.5, "speaker_id": "speaker_1"}
+  ]
+}
