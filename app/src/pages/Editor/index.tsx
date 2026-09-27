@@ -13,6 +13,7 @@ import { insertParagraphEnd } from '../../state/editor/edit';
 import { EditorMenuBar } from './MenuBar';
 import { FilterDialog } from './Filter';
 import { TranscriptionNotes } from './TranscriptionNotes';
+import { SessionRecorder } from './SessionRecorder';
 
 const MainContainer = styled(MainCenterColumn)`
   justify-content: start;
@@ -40,6 +41,7 @@ export function EditorPage(): JSX.Element {
       <Player />
 
       <EditorTitleBar />
+      <SessionRecorder />
       <ExportDocumentDialog />
       <FilterDialog />
 
