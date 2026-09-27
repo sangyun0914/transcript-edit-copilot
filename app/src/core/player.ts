@@ -157,10 +157,11 @@ export class Player {
       );
     } else {
       // we produce synthetic silence
-      const startTime = Date.now();
+      const startTime = Date.now() / 1000;
+      const startPosition = this.currentTime;
       this.playRenderItem(
         currentRenderItem,
-        () => Date.now() - startTime + currentRenderItem.absoluteStart,
+        () => Date.now() / 1000 - startTime + startPosition,
         () => {},
         () => this.play()
       );
