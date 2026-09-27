@@ -1,38 +1,38 @@
-# audapolis electron app
-This directory contains the code for the main audapolis electron app that is the user facing component of audapolis.
+# 데스크톱 편집기
 
-Code in the `src` directory runs in electrons renderer process.
+Electron·React·Redux 기반의 전사 편집 화면입니다. 전사문과 음성 구간을 연결하고, 로컬 모델의 제안 미리보기·수락·거절·되돌리기를 처리합니다.
 
-## Installation & Usage
+프로젝트 소개와 사용 화면은 [루트 README](../README.md)를 참고하세요.
 
-Install the dependencies of the electron app:
-```npm install```
+## 실행
 
-Also make sure to install the dependencies for the python server that is started by the electron app.
-For that, see [../server/README.md](../server/README.md)
-
-After installing the dependencies, run the app:
-```npm start```
-
-## Code checks & tests
-
-Please dont forget to format your code before committing:
-```npm run fmt```
-
-And also lint it:
-```npm run check```
-
-You can either run the checks manually or use the [pre-commit](https://pre-commit.com)-hook.
-To do that install `pre-commit` using you system package manager or by running
+먼저 [서버 의존성](../server/README.md#실행)을 설치합니다. 아래 명령은 `app/`에서 실행합니다.
 
 ```sh
-pip install pre-commit
+npm ci
+npm start
 ```
 
-After that install the hook by running
+개발 모드에서는 화면 변경을 자동 반영하고 Python 서버를 함께 시작합니다. 코파일럿 연결은 [서버 설정](../server/README.md#로컬-코파일럿)을 따릅니다.
+
+## 코드 구성
+
+| 경로 | 역할 |
+| --- | --- |
+| `main_process/` | 창 관리, Python 서버 실행, 데스크톱 메뉴 |
+| `src/pages/Editor/` | 전사문·쉼 편집, 제안 미리보기, 세션 기록 화면 |
+| `src/core/` | 문서와 원본 음성 연결, 재생, 편집 검증 |
+| `src/state/` | 편집 상태, 실행 취소, 예측 요청과 사용자 반응 |
+| `src/server_api/` | Python 서버와의 통신 |
+
+## 검사
 
 ```sh
-pre-commit install
+npm run check
+npm run test:fast -- --runInBand
+MODE=test npx jest --runInBand '.*\.pup\.spec.ts'
 ```
 
-Now the code will be checked every time you commit.
+마지막 명령은 실제 Electron 창을 사용하는 화면 검사입니다. Xvfb가 설치된 Linux에서는 `MODE=test npm run test:puppeteer`로 가상 화면에서 검사할 수 있습니다.
+
+코드 서식은 `npm run fmt`로 정리합니다. 화면 검사에는 서버 의존성도 필요합니다.
