@@ -34,15 +34,17 @@ export async function fetchFromServer(
   if (!response.ok) {
     const body = await response.text();
     let message = `Server request failed (HTTP ${response.status}).`;
+    let code: string | undefined;
     try {
       const parsed = JSON.parse(body);
       if (typeof parsed.detail === 'string') message = parsed.detail;
       else if (typeof parsed.detail?.message === 'string') message = parsed.detail.message;
+      if (typeof parsed.detail?.code === 'string') code = parsed.detail.code;
     } catch {
       // Older endpoints return plain text errors.
       if (body) message = body;
     }
-    throw new Error(message);
+    throw Object.assign(new Error(message), { status: response.status, code });
   }
   return response;
 }

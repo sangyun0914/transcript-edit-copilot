@@ -14,9 +14,14 @@ export interface PredictRequest {
   focus_uuid: string;
   selection: string[];
   sequence: number;
+  request_transport?: 'sequenced-v1';
   history: CommittedTransition[];
+  history_transport?: 'incremental';
+  history_base?: string | null;
   trigger: 'automatic' | 'explicit';
   deadline_ms: number;
+  origin: CopilotFeedback['origin'];
+  observed_at: string;
 }
 
 export function predictCopilot(
@@ -34,10 +39,23 @@ export function predictCopilot(
   ).then((response) => response.json());
 }
 
-export function feedbackCopilot(server: ServerConfig, event: CopilotFeedback): Promise<void> {
-  return fetchFromServer(server, 'POST', 'copilot/feedback', undefined, { json: event }).then(
-    () => {}
-  );
+export async function feedbackCopilot(server: ServerConfig, event: CopilotFeedback): Promise<void> {
+  const response = await fetchFromServer(server, 'POST', 'copilot/feedback', undefined, {
+    json: event,
+  });
+  const receipt = await response.json();
+  if (
+    receipt.recorded !== true ||
+    receipt.persisted !== true ||
+    receipt.document_id !== event.document_id ||
+    receipt.event_id !== event.event_id ||
+    receipt.proposal_id !== event.proposal_id ||
+    receipt.outcome !== event.outcome ||
+    !/^[a-f0-9]{64}$/.test(receipt.event_hash) ||
+    !Number.isInteger(receipt.seq) ||
+    receipt.seq < 0
+  )
+    throw new Error('Local copilot feedback was not durably confirmed.');
 }
 
 export function cancelCopilot(

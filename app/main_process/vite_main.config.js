@@ -21,6 +21,7 @@ export default defineConfig({
   root: __dirname,
   plugins: [reactRefresh(), commonjsExternals({ externals: commonjsPackages })],
   build: {
+    rollupOptions: { external: builtinModules },
     lib: {
       entry: 'index.ts',
       fileName: 'start',

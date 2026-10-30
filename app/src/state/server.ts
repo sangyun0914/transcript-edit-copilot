@@ -6,11 +6,13 @@ import {
   subscribeLocalServerInfo,
   subscribeLocalServerStderr,
 } from '../../ipc/ipc_renderer';
-import { assertSome, isRunningInTest } from '../util';
+import { isRunningInTest } from '../util';
+import type { ServerInfo } from '../../main_process/types';
 
 export interface ServerState {
   servers: ServerConfig[];
   selectedServer: number;
+  localServerInfo?: ServerInfo;
 }
 
 export interface ServerConfig {
@@ -19,6 +21,20 @@ export interface ServerConfig {
   token: string | null;
   name: string;
   state?: string;
+}
+
+function updateLocalServer(state: ServerState, config: Omit<ServerConfig, 'name'>) {
+  const name = 'local server';
+  const index = state.servers.findIndex((server) => server.name === name);
+  const server = { name, ...config };
+  if (index < 0) state.servers.push(server);
+  else state.servers[index] = server;
+}
+
+export function localServerStatus(state: ServerState): 'starting' | 'running' | 'unavailable' {
+  const info = state.localServerInfo;
+  if (!info || ['not started', 'starting'].includes(info.state)) return 'starting';
+  return info.state === 'running' && info.port !== null ? 'running' : 'unavailable';
 }
 
 export const changeServer = createAsyncThunk<void, number, { state: RootState }>(
@@ -40,13 +56,20 @@ export const serverSlice = createSlice({
       state.servers.push(args.payload);
     },
     setLocalServer: (state, args: PayloadAction<Omit<ServerConfig, 'name'>>) => {
-      const localServerName = 'local server';
-      const serverIdx = state.servers.findIndex((server) => server.name == localServerName);
-      const server = { name: localServerName, ...args.payload };
-      if (serverIdx != -1) {
-        state.servers[serverIdx] = server;
+      updateLocalServer(state, args.payload);
+    },
+    receiveLocalServerInfo: (state, { payload: info }: PayloadAction<ServerInfo>) => {
+      state.localServerInfo = info;
+      if (info.state === 'running' && info.port !== null) {
+        updateLocalServer(state, {
+          hostname: 'http://localhost',
+          port: info.port,
+          token: info.token,
+          state: info.state,
+        });
       } else {
-        state.servers.push(server);
+        const existing = state.servers.find((server) => server.name === 'local server');
+        if (existing) existing.state = info.state;
       }
     },
     removeServer: (state, args: PayloadAction<string>) => {
@@ -57,7 +80,8 @@ export const serverSlice = createSlice({
     },
   },
 });
-const { setLocalServer, selectServer } = serverSlice.actions;
+const { selectServer } = serverSlice.actions;
+export const { receiveLocalServerInfo } = serverSlice.actions;
 export default serverSlice.reducer;
 
 export const getServer = (state: RootState): ServerConfig => {
@@ -73,16 +97,7 @@ if (!isRunningInTest()) {
     console.groupEnd();
   });
   subscribeLocalServerInfo((info) => {
-    assertSome(info.port);
-
-    window.store.dispatch(
-      setLocalServer({
-        hostname: 'http://localhost',
-        port: info.port,
-        token: info.token,
-        state: info.state,
-      })
-    );
+    window.store.dispatch(receiveLocalServerInfo(info));
   });
   requestLocalServerInfo();
 }

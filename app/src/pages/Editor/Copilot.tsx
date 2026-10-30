@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDispatch, useSelector, useStore } from 'react-redux';
-import { Button, Checkbox, getPosition, Pane, StackingOrder, Text } from 'evergreen-ui';
+import { Button, getPosition, Pane, StackingOrder, Text } from 'evergreen-ui';
 import styled from 'styled-components';
 import type { RootState } from '../../state';
 import { useTheme } from '../../components/theme';
@@ -10,14 +10,14 @@ import { copilotPreviewText } from '../../core/copilot';
 import { gapSeconds } from '../../core/gaps';
 import {
   acceptCopilot,
-  copilotEligible,
   currentCopilotProposal,
   dismissCopilot,
   expireCopilot,
   markCopilotShown,
-  requestCopilot,
+  localCopilotServer,
+  refreshCopilotHealth,
+  retryCopilotFeedback,
   setCopilotBlocked,
-  setCopilotEnabled,
   copilotPreviewVisible,
   invalidateCopilot,
 } from '../../state/copilot';
@@ -26,7 +26,33 @@ export function CopilotControls(): JSX.Element {
   const dispatch = useDispatch(),
     store = useStore<RootState>();
   const state = useSelector((state: RootState) => state.copilot);
-  const eligible = useSelector(copilotEligible);
+  const server = useSelector(localCopilotServer);
+  useEffect(() => {
+    if (!state.enabled) return;
+    let disposed = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const refresh = async () => {
+      await dispatch(refreshCopilotHealth());
+      if (!disposed)
+        timer = setTimeout(
+          refresh,
+          store.getState().copilot.healthStatus === 'ready' ? 10000 : 2000
+        );
+    };
+    void refresh();
+    return () => {
+      disposed = true;
+      clearTimeout(timer);
+    };
+  }, [
+    state.enabled,
+    server?.hostname,
+    server?.port,
+    server?.token,
+    server?.state,
+    dispatch,
+    store,
+  ]);
   useEffect(() => {
     let composing = false;
     const refresh = () => {
@@ -78,43 +104,36 @@ export function CopilotControls(): JSX.Element {
   }, [dispatch, store]);
 
   const status = state.feedbackError
-    ? `Feedback could not sync: ${state.feedbackError}. Turn copilot off and on to start a new session.`
-    : state.error ||
-      (state.status === 'requesting'
-        ? 'Predicting locally…'
-        : state.status === 'preview'
-        ? 'Preview ready · Tab accepts · Esc dismisses'
-        : state.status === 'no_action'
-        ? 'No edit suggested.'
-        : state.status === 'suppressed'
-        ? 'Previously dismissed edit suppressed.'
-        : state.health || 'Preview suggestions for transcript, audio and captions.');
+    ? 'Suggestions paused because feedback could not be saved. Your edits are retained.'
+    : state.error
+    ? 'Could not suggest an edit here. Suggestions will resume when you move or edit.'
+    : state.status === 'requesting'
+    ? 'Finding the next edit…'
+    : state.status === 'preview'
+    ? 'Suggestion ready. Tab to accept, Esc to dismiss.'
+    : state.healthStatus === null || state.healthStatus === 'starting'
+    ? 'Preparing local suggestions…'
+    : state.healthStatus === 'busy'
+    ? 'Waiting for the local model…'
+    : !['ready', 'busy'].includes(state.healthStatus)
+    ? 'Local suggestions are unavailable. You can continue editing.'
+    : state.status === 'no_action' || state.status === 'suppressed'
+    ? 'No edit suggested here.'
+    : 'Suggestions appear automatically as you edit.';
   return (
-    <Pane display="flex" alignItems="center" flexWrap="wrap" gap={12} paddingX={24}>
-      <Checkbox
-        label="Local copilot (experimental)"
-        aria-label="Enable local copilot"
-        checked={state.enabled}
-        onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-          dispatch(setCopilotEnabled(event.target.checked))
-        }
-      />
-      {state.enabled && (
-        <>
-          <Button
-            size="small"
-            disabled={!eligible || state.status === 'requesting'}
-            onClick={() => {
-              document.getElementById('document')?.focus();
-              dispatch(requestCopilot('explicit'));
-            }}
-          >
-            Predict next edit
-          </Button>
-          <Text id="copilot-status" role="status" size={300}>
-            {status}
-          </Text>
-        </>
+    <Pane display="flex" alignItems="center" flexWrap="wrap" gap={12} paddingX={24} paddingY={12}>
+      <Text
+        id="copilot-status"
+        role="status"
+        size={300}
+        title={state.error || state.feedbackError || state.health || undefined}
+      >
+        {status}
+      </Text>
+      {state.feedbackError && (
+        <Button size="small" onClick={() => dispatch(retryCopilotFeedback())}>
+          Retry saving feedback
+        </Button>
       )}
     </Pane>
   );

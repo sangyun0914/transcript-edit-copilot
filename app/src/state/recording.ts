@@ -7,7 +7,9 @@ import { v4 as uuidv4 } from 'uuid';
 import type { RootState } from './index';
 import { SessionEvent, SessionJournal, SessionMode } from '../core/editing_session';
 import type { Document } from '../core/document';
+import type { CopilotFeedback } from '../core/copilot';
 import type { EditorState } from './editor/types';
+import { setCopilotFeedbackOrigin } from './copilot';
 
 interface RecordingState {
   status: 'idle' | 'starting' | 'recording' | 'stopping' | 'failed';
@@ -53,6 +55,7 @@ let writer: {
   sources: Set<string>;
   error: string | null;
   stopped: boolean;
+  previousFeedbackOrigin: CopilotFeedback['origin'];
 } | null = null;
 
 function sourceManifest(document: Document) {
@@ -88,8 +91,14 @@ export const startRecording = createAsyncThunk<
       sources: new Set(Object.keys(sources)),
       error: null as string | null,
       stopped: false,
+      previousFeedbackOrigin: getState().copilot.feedbackOrigin,
     };
     writer = active;
+    dispatch(
+      setCopilotFeedbackOrigin(
+        args.mode === 'ai_computer_use' || args.mode === 'synthetic' ? args.mode : 'human'
+      )
+    );
     active.journal = new SessionJournal(
       editor,
       {
@@ -120,6 +129,7 @@ export const startRecording = createAsyncThunk<
     dispatch(slice.actions.started(args.path));
   } catch (error) {
     if (file) await file.close();
+    if (writer) dispatch(setCopilotFeedbackOrigin(writer.previousFeedbackOrigin));
     writer = null;
     dispatch(slice.actions.failed(error.message || String(error)));
   }
@@ -146,7 +156,10 @@ export const stopRecording = createAsyncThunk<void, string | undefined, { state:
       dispatch(slice.actions.failed(error.message || String(error)));
     } finally {
       await active.file.close();
-      if (writer === active) writer = null;
+      if (writer === active) {
+        writer = null;
+        dispatch(setCopilotFeedbackOrigin(active.previousFeedbackOrigin));
+      }
     }
   }
 );

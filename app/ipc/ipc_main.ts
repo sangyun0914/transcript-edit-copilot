@@ -1,5 +1,4 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
-import { assertSome } from '../src/util';
 import path from 'path';
 import fs from 'fs';
 import { setMenuBar, showMenuBar, showContextMenu } from '../main_process/menu';
@@ -10,13 +9,13 @@ import { logFilePath } from '../src/util/log';
 
 ipcMain.handle('open-file', (event, options) => {
   const win = BrowserWindow.fromWebContents(event.sender);
-  assertSome(win);
+  if (!win || win.isDestroyed()) return { canceled: true, filePaths: [] };
   return dialog.showOpenDialog(win, options);
 });
 
 ipcMain.handle('save-file', (event, options) => {
   const win = BrowserWindow.fromWebContents(event.sender);
-  assertSome(win);
+  if (!win || win.isDestroyed()) return { canceled: true };
   return dialog.showSaveDialog(win, options);
 });
 
@@ -50,13 +49,13 @@ ipcMain.handle('get-about', () => {
 
 ipcMain.on('set-menubar', (event, args) => {
   const win = BrowserWindow.fromWebContents(event.sender);
-  assertSome(win);
+  if (!win || win.isDestroyed()) return;
   setMenuBar(win, args);
 });
 
 ipcMain.on('show-menubar', (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
-  assertSome(win);
+  if (!win || win.isDestroyed()) return;
   showMenuBar(win);
 });
 
@@ -66,7 +65,7 @@ export function menuBarClick(window: BrowserWindow, uuid: string): void {
 
 ipcMain.on('show-contextmenu', (event, args) => {
   const win = BrowserWindow.fromWebContents(event.sender);
-  assertSome(win);
+  if (!win || win.isDestroyed()) return;
   showContextMenu(win, args);
 });
 
@@ -80,9 +79,7 @@ export function publishServerInfo(update?: Partial<ServerInfo>): void {
       (serverInfo[k] as any) = update[k];
     });
   }
-  if (serverInfo.state == 'running') {
-    sendAll('local-server-info', serverInfo);
-  }
+  sendAll('local-server-info', serverInfo);
 }
 
 export function publishServerStderr(stderr: string): void {

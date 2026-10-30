@@ -7,6 +7,7 @@ import {
 } from '@reduxjs/toolkit';
 import { v4 as uuidv4 } from 'uuid';
 import type { ServerConfig, ServerState } from './server';
+import { localServerStatus } from './server';
 import type { EditorState } from './editor/types';
 import { Page, NavState } from './nav';
 import { currentIndex } from './editor/selectors';
@@ -16,14 +17,20 @@ import { sessionContext, sessionDocument, sessionHash } from '../core/editing_se
 import {
   CommittedTransition,
   CopilotFeedback,
+  CopilotHistoryTip,
   CopilotRequestIdentity,
   CopilotResponse,
-  inferManualPrediction,
+  inspectManualEdit,
   isTimed,
   sameRequest,
   validCopilotResult,
 } from '../core/copilot';
 import * as api from '../server_api/copilot';
+import type { Document } from '../core/document';
+
+const AUTOMATIC_DEBOUNCE_MS = 150;
+const BUSY_RETRY_INITIAL_MS = 250;
+const BUSY_RETRY_MAX_MS = 2000;
 
 interface Proposal {
   response: CopilotResponse;
@@ -65,10 +72,11 @@ export interface CopilotState {
   proposal: Proposal | null;
   history: CommittedTransition[];
   accepted: Record<string, { proposal: CopilotResponse; undone: boolean }>;
-  events: CopilotFeedback[];
+  events: (CopilotFeedback & { persistence: 'pending' | 'saved' | 'failed' })[];
   error: string | null;
   feedbackError: string | null;
   health: string | null;
+  healthStatus: string | null;
   measurements: CopilotMeasurement[];
   feedbackOrigin: CopilotFeedback['origin'];
 }
@@ -81,7 +89,7 @@ type CopilotRoot = {
 };
 
 const initialState: CopilotState = {
-  enabled: false,
+  enabled: true,
   blocked: false,
   nativeDialog: false,
   documentId: '',
@@ -97,6 +105,7 @@ const initialState: CopilotState = {
   error: null,
   feedbackError: null,
   health: null,
+  healthStatus: null,
   measurements: [],
   feedbackOrigin: 'human',
 };
@@ -177,7 +186,7 @@ const slice = createSlice({
     recorded: (state, action: PayloadAction<CopilotFeedback>) => {
       if (state.documentId !== action.payload.document_id) return;
       state.sequence = Math.max(state.sequence, action.payload.sequence);
-      state.events.push(action.payload);
+      state.events.push({ ...action.payload, persistence: 'pending' });
       if (state.events.length > 100) state.events.shift();
       if (
         action.payload.outcome === 'shown' &&
@@ -201,8 +210,19 @@ const slice = createSlice({
       if (state.documentId === action.payload.documentId)
         state.feedbackError = action.payload.error;
     },
-    health: (state, action: PayloadAction<string>) => {
-      state.health = action.payload;
+    feedbackSettled: (
+      state,
+      action: PayloadAction<{ eventId: string; persistence: 'saved' | 'failed' }>
+    ) => {
+      const event = state.events.find((item) => item.event_id === action.payload.eventId);
+      if (event) event.persistence = action.payload.persistence;
+    },
+    health: (state, action: PayloadAction<{ status: string | null; message?: string }>) => {
+      state.health = action.payload.message || null;
+      state.healthStatus = action.payload.status;
+    },
+    feedbackRecovered: (state) => {
+      if (state.events.every((event) => event.persistence === 'saved')) state.feedbackError = null;
     },
   },
 });
@@ -220,6 +240,8 @@ export const dismissCopilot = createAction('copilot/dismiss');
 export const markCopilotShown = createAction<string>('copilot/shown');
 export const expireCopilot = createAction<string>('copilot/expire');
 export const invalidateCopilot = createAction<string>('copilot/invalidate');
+export const refreshCopilotHealth = createAction('copilot/refreshHealth');
+export const retryCopilotFeedback = createAction('copilot/retryFeedback');
 exposeReducersWindow({
   setCopilotEnabled,
   setCopilotBlocked,
@@ -260,6 +282,25 @@ export function copilotEligible(state: CopilotRoot): boolean {
   );
 }
 
+// Redux snapshots retain these references across metrics and feedback updates.
+const validProposalResult = createSelector(
+  (document: Document) => document.content,
+  (document: Document) => document.metadata.transcription,
+  (document: Document) => document.metadata.transcriptions,
+  (_document: Document, response: CopilotResponse) => response,
+  (content, transcription, transcriptions, response) =>
+    validCopilotResult(
+      {
+        content,
+        metadata: {
+          ...(transcription && { transcription }),
+          ...(transcriptions && { transcriptions }),
+        },
+      },
+      response
+    )
+);
+
 function validateCurrentProposal(state: CopilotRoot): Proposal | null {
   const proposal = state.copilot.proposal,
     editor = state.editor.present;
@@ -273,7 +314,7 @@ function validateCurrentProposal(state: CopilotRoot): Proposal | null {
     proposal.response.request.revision !== state.copilot.revision ||
     proposal.response.request.interaction_epoch !== state.copilot.epoch ||
     proposal.contextHash !== sessionHash(sessionContext(editor)) ||
-    !validCopilotResult(sessionDocument(editor.document), proposal.response)
+    !validProposalResult(editor.document, proposal.response)
   )
     return null;
   return proposal;
@@ -355,6 +396,23 @@ function editorContext(editor: EditorState | null): unknown {
     : null;
 }
 
+function serverIdentity(state: CopilotRoot): string {
+  const server = localCopilotServer(state);
+  return server
+    ? sessionHash([server.hostname, server.port, server.token, server.state ?? null])
+    : '';
+}
+
+function automaticContext(state: CopilotRoot): string {
+  return sessionHash({
+    document: state.copilot.documentId,
+    revision: state.copilot.revision,
+    cursor: state.editor.present?.cursor,
+    selection: state.editor.present?.selection,
+    server: serverIdentity(state),
+  });
+}
+
 function latestActive(history: CommittedTransition[]): CommittedTransition | undefined {
   const active: CommittedTransition[] = [];
   for (const transition of history) transition.undo_of ? active.pop() : active.push(transition);
@@ -374,8 +432,11 @@ export const createCopilotMiddleware =
       feedbackQueue = Promise.resolve();
     let pendingAutomatic = false;
     let pendingTrace: LatencyTrace | undefined;
-    let lastCommitAt: number | undefined;
+    let lastAttempt: string | undefined;
+    let healthRequest: Promise<void> | undefined;
+    const failedFeedbackDocuments = new Set<string>();
     const traces = new Map<string, LatencyTrace>();
+    let acknowledgedHistory: { documentId: string; tip: CopilotHistoryTip } | undefined;
     const measure = (
       event: string,
       trace: LatencyTrace | undefined,
@@ -405,7 +466,7 @@ export const createCopilotMiddleware =
       return trace;
     };
     const sequences = new Map<string, number>();
-    const cancel = () => {
+    const cancel = (reason = 'context_changed') => {
       generation++;
       pendingAutomatic = false;
       if (timer) clearTimeout(timer);
@@ -414,7 +475,8 @@ export const createCopilotMiddleware =
       pendingTrace = undefined;
       if (active) {
         const trace = active.trace;
-        measure('cancel_requested', trace);
+        measure('cancel_requested', trace, { outcome: reason });
+        lastAttempt = undefined;
         active.controller.abort();
         void api
           .cancelCopilot(active.server, active.request)
@@ -434,8 +496,12 @@ export const createCopilotMiddleware =
         outcome === 'shown' ? 'visible_complete_preview' : outcome,
         traces.get(response.request.request_id)
       );
+      const current = store.getState().copilot;
+      const sameDocument = current.documentId === response.request.document_id;
       const event: CopilotFeedback = {
+        event_id: uuidv4(),
         document_id: response.request.document_id,
+        request: response.request,
         proposal_id: response.proposal_id,
         outcome,
         sequence:
@@ -448,13 +514,31 @@ export const createCopilotMiddleware =
           ) + 1,
         origin: store.getState().copilot.feedbackOrigin,
         reason: 'unspecified',
+        observed_at: new Date().toISOString(),
+        revision: sameDocument ? current.revision : null,
+        interaction_epoch: sameDocument ? current.epoch : null,
         ...(transition && { transition }),
       };
       sequences.set(event.document_id, event.sequence);
       store.dispatch(slice.actions.recorded(event));
       feedbackQueue = feedbackQueue
-        .then(() => api.feedbackCopilot(server, event))
+        .then(async () => {
+          if (failedFeedbackDocuments.has(event.document_id)) {
+            store.dispatch(
+              slice.actions.feedbackSettled({ eventId: event.event_id, persistence: 'failed' })
+            );
+            return;
+          }
+          await api.feedbackCopilot(server, event);
+          store.dispatch(
+            slice.actions.feedbackSettled({ eventId: event.event_id, persistence: 'saved' })
+          );
+        })
         .catch((error) => {
+          failedFeedbackDocuments.add(event.document_id);
+          store.dispatch(
+            slice.actions.feedbackSettled({ eventId: event.event_id, persistence: 'failed' })
+          );
           store.dispatch(
             slice.actions.feedbackFailed({
               documentId: event.document_id,
@@ -463,13 +547,26 @@ export const createCopilotMiddleware =
           );
         });
     };
-    const invalidate = (outcome: 'invalidated' | 'expired' = 'invalidated') => {
+    const invalidate = (
+      outcome: 'invalidated' | 'expired' = 'invalidated',
+      reason = 'context_changed'
+    ) => {
       const proposal = store.getState().copilot.proposal;
-      if (proposal) feedback(proposal.response, proposal.shown ? outcome : 'invalidated');
-      cancel();
+      if (proposal) {
+        measure('preview_invalidated', traces.get(proposal.response.request.request_id), {
+          outcome: reason,
+        });
+        feedback(proposal.response, proposal.shown ? outcome : 'invalidated');
+      }
+      cancel(reason);
       store.dispatch(slice.actions.invalidated());
     };
-    const predict = async (trigger: 'automatic' | 'explicit', trace = newTrace(trigger)) => {
+    const predict = async (
+      trigger: 'automatic' | 'explicit',
+      trace = newTrace(trigger),
+      resynced = false,
+      busyRetries = 0
+    ): Promise<void> => {
       invalidate();
       const ownGeneration = generation;
       await feedbackQueue;
@@ -484,20 +581,29 @@ export const createCopilotMiddleware =
         store.dispatch(slice.actions.failed('A local server is required for copilot.'));
         return;
       }
+      if (
+        trigger === 'automatic' &&
+        (state.copilot.healthStatus !== 'ready' || (server.state && server.state !== 'running'))
+      ) {
+        pendingAutomatic = true;
+        pendingTrace = trace;
+        measure('trigger_suppressed', trace, { outcome: 'model_not_ready' });
+        return;
+      }
+      lastAttempt = automaticContext(state);
       const timed = editor.document.content.filter(isTimed),
         index = currentIndex(editor);
       const focus = editor.document.content.slice(index).find(isTimed) || timed[timed.length - 1];
+      const sequence = state.copilot.sequence + 1;
       const request = {
         document_id: state.copilot.documentId,
-        request_id: uuidv4(),
+        request_id: `${uuidv4()}:${sequence}`,
         revision: state.copilot.revision,
         interaction_epoch: state.copilot.epoch,
       };
-      const sequence = state.copilot.sequence + 1;
       sequences.set(request.document_id, sequence);
       const controller = new AbortController();
-      trace.requested = performance.now();
-      trace.request_id = request.request_id;
+      trace = { ...trace, requested: performance.now(), request_id: request.request_id };
       traces.set(request.request_id, trace);
       if (traces.size > 512) traces.delete(traces.keys().next().value);
       measure('request', trace);
@@ -510,10 +616,22 @@ export const createCopilotMiddleware =
         }
       }, 31000);
       try {
+        const history = state.copilot.history;
+        const acknowledged =
+          acknowledgedHistory?.documentId === state.copilot.documentId
+            ? acknowledgedHistory.tip
+            : undefined;
+        const base =
+          acknowledged &&
+          acknowledged.count > 0 &&
+          history[acknowledged.count - 1]?.transaction_id === acknowledged.transaction_id
+            ? acknowledged
+            : undefined;
         const response = await api.predictCopilot(
           server,
           {
             request,
+            request_transport: 'sequenced-v1',
             sequence,
             document: sessionDocument(editor.document),
             focus_uuid: focus.uuid,
@@ -526,9 +644,13 @@ export const createCopilotMiddleware =
                   .filter(isTimed)
                   .map((item) => item.uuid)
               : [],
-            history: state.copilot.history,
+            history: base ? history.slice(base.count) : history,
+            history_transport: 'incremental',
+            history_base: base?.transaction_id ?? null,
             trigger,
             deadline_ms: 30000,
+            origin: state.copilot.feedbackOrigin,
+            observed_at: new Date().toISOString(),
           },
           controller.signal
         );
@@ -542,21 +664,30 @@ export const createCopilotMiddleware =
           !sameRequest(request, current.copilot.request) ||
           !copilotEligible(current) ||
           !present ||
-          response.document_hash !== sessionHash(sessionDocument(present.document))
+          (response.status !== 'proposal' &&
+            response.document_hash !== sessionHash(sessionDocument(present.document)))
         ) {
           measure('stale_discard', trace);
           if (response.status === 'proposal') feedback(response, 'invalidated', undefined, server);
           return;
         }
-        if (
-          response.status === 'proposal' &&
-          !validCopilotResult(sessionDocument(present.document), response)
-        ) {
+        if (response.status === 'proposal' && !validProposalResult(present.document, response)) {
           feedback(response, 'invalidated', undefined, server);
           throw new Error('Local prediction failed source validation.');
         }
         if (!['proposal', 'no_action', 'suppressed'].includes(response.status))
           throw new Error('Unknown local prediction response.');
+        if (response.history_tip) {
+          const tip = response.history_tip,
+            last = history[history.length - 1];
+          if (
+            tip.count !== history.length ||
+            tip.transaction_id !== (last?.transaction_id ?? null) ||
+            tip.sequence !== (last?.sequence ?? 0)
+          )
+            throw new Error('Local prediction returned an inconsistent history acknowledgement.');
+          acknowledgedHistory = { documentId: state.copilot.documentId, tip };
+        }
         store.dispatch(
           slice.actions.completed({
             response,
@@ -565,6 +696,42 @@ export const createCopilotMiddleware =
           })
         );
       } catch (error) {
+        if (
+          error.code === 'history_resync_required' &&
+          !resynced &&
+          generation === ownGeneration &&
+          !controller.signal.aborted
+        ) {
+          acknowledgedHistory = undefined;
+          measure('history_resync', trace);
+          active = null;
+          await predict(trigger, trace, true, busyRetries);
+          return;
+        }
+        if (
+          error.code === 'busy' &&
+          generation === ownGeneration &&
+          !controller.signal.aborted &&
+          copilotEligible(store.getState())
+        ) {
+          const delay = Math.min(
+            BUSY_RETRY_INITIAL_MS * 2 ** Math.min(busyRetries, 3),
+            BUSY_RETRY_MAX_MS
+          );
+          measure('busy_retry', trace, { timings: { retry_delay_ms: delay } });
+          lastAttempt = undefined;
+          active = null;
+          pendingAutomatic = trigger === 'automatic';
+          pendingTrace = trace;
+          timer = setTimeout(() => {
+            timer = undefined;
+            pendingAutomatic = false;
+            pendingTrace = undefined;
+            if (generation === ownGeneration && copilotEligible(store.getState()))
+              void predict(trigger, trace, resynced, busyRetries + 1);
+          }, delay);
+          return;
+        }
         measure(controller.signal.aborted ? 'request_settled_after_cancel' : 'error', trace);
         if (generation === ownGeneration && !controller.signal.aborted)
           store.dispatch(slice.actions.failed(String(error.message || error)));
@@ -573,8 +740,68 @@ export const createCopilotMiddleware =
         if (active?.request.request_id === request.request_id) active = null;
       }
     };
+    const scheduleAutomatic = (started?: number) => {
+      const state = store.getState();
+      if (!state.copilot.enabled || !state.editor.present || state.nav.page !== Page.Editor) return;
+      if (lastAttempt === automaticContext(state)) return;
+      pendingAutomatic = true;
+      if (!copilotEligible(state)) return;
+      const server = localCopilotServer(state);
+      if (!server || (server.state && server.state !== 'running')) return;
+      if (!pendingTrace) pendingTrace = newTrace('automatic', started);
+      if (state.copilot.healthStatus !== 'ready') {
+        if (state.copilot.healthStatus === null) void checkHealth();
+        return;
+      }
+      if (timer) return;
+      timer = setTimeout(() => {
+        timer = undefined;
+        pendingAutomatic = false;
+        const trace = pendingTrace;
+        pendingTrace = undefined;
+        void predict('automatic', trace);
+      }, AUTOMATIC_DEBOUNCE_MS);
+    };
+    const checkHealth = (): Promise<void> => {
+      const state = store.getState(),
+        server = localCopilotServer(state),
+        identity = serverIdentity(state);
+      if (!server || (server.state && server.state !== 'running')) {
+        const unavailable = server
+          ? !['not started', 'starting'].includes(server.state as string)
+          : localServerStatus(state.server) === 'unavailable';
+        store.dispatch(
+          slice.actions.health({
+            status: unavailable ? 'unavailable' : 'starting',
+            message: unavailable
+              ? 'The local server could not start or has stopped. Restart the app to try again.'
+              : 'The local server is starting.',
+          })
+        );
+        return Promise.resolve();
+      }
+      if (healthRequest) return healthRequest;
+      healthRequest = api
+        .copilotHealth(server)
+        .then((health) => {
+          if (serverIdentity(store.getState()) !== identity) return;
+          store.dispatch(slice.actions.health(health));
+          if (pendingAutomatic && health.status === 'ready') scheduleAutomatic();
+        })
+        .catch((error) => {
+          if (serverIdentity(store.getState()) !== identity) return;
+          store.dispatch(
+            slice.actions.health({ status: 'unavailable', message: String(error.message || error) })
+          );
+        })
+        .finally(() => {
+          healthRequest = undefined;
+        });
+      return healthRequest;
+    };
     return (next) => (action) => {
-      const before = store.getState(),
+      const interactionStarted = performance.now(),
+        before = store.getState(),
         oldEditor = before.editor.present;
       if (acceptCopilotTransaction.type === action.type) {
         const current = currentCopilotProposal(before);
@@ -590,11 +817,47 @@ export const createCopilotMiddleware =
           action.type
         )
       ) {
-        invalidate();
+        if (store.getState().copilot.proposal) lastAttempt = undefined;
+        invalidate('invalidated', action.type);
         store.dispatch(slice.actions.nativeDialog(action.type.endsWith('/pending')));
         store.dispatch(slice.actions.observed({ changed: false }));
+        scheduleAutomatic(interactionStarted);
       }
-      if (requestCopilot.match(action)) return predict(action.payload);
+      if (refreshCopilotHealth.match(action)) return checkHealth();
+      if (retryCopilotFeedback.match(action)) {
+        const state = store.getState(),
+          server = localCopilotServer(state),
+          documentId = state.copilot.documentId;
+        if (!server || !state.copilot.feedbackError) return result;
+        feedbackQueue = feedbackQueue.then(async () => {
+          const failed = store
+            .getState()
+            .copilot.events.filter(
+              (event) => event.document_id === documentId && event.persistence === 'failed'
+            );
+          for (const { persistence: _persistence, ...event } of failed) {
+            try {
+              await api.feedbackCopilot(server, event);
+              store.dispatch(
+                slice.actions.feedbackSettled({ eventId: event.event_id, persistence: 'saved' })
+              );
+            } catch (error) {
+              store.dispatch(
+                slice.actions.feedbackFailed({ documentId, error: String(error.message || error) })
+              );
+              return;
+            }
+          }
+          failedFeedbackDocuments.delete(documentId);
+          if (store.getState().copilot.documentId === documentId) {
+            store.dispatch(slice.actions.feedbackRecovered());
+            scheduleAutomatic(interactionStarted);
+          }
+        });
+        return feedbackQueue;
+      }
+      if (requestCopilot.match(action))
+        return predict(action.payload, newTrace(action.payload, interactionStarted));
       if (markCopilotShown.match(action)) {
         const proposal = currentCopilotProposal(store.getState());
         if (proposal && !proposal.shown && proposal.response.proposal_id === action.payload)
@@ -628,67 +891,74 @@ export const createCopilotMiddleware =
       }
       if (invalidateCopilot.match(action)) {
         if (store.getState().copilot.proposal?.response.proposal_id === action.payload)
-          invalidate();
+          invalidate('invalidated', 'preview_not_visible');
         return result;
       }
       if (setCopilotEnabled.match(action)) {
         if (before.copilot.enabled === action.payload) return result;
         invalidate();
         store.dispatch(slice.actions.resetSession(uuidv4()));
-        const server = localCopilotServer(store.getState());
-        if (action.payload && server)
-          void api
-            .copilotHealth(server)
-            .then((health) => store.dispatch(slice.actions.health(health.message || health.status)))
-            .catch((error) => store.dispatch(slice.actions.health(String(error.message || error))));
+        lastAttempt = undefined;
+        if (action.payload) {
+          void checkHealth();
+          scheduleAutomatic(interactionStarted);
+        }
         return result;
       }
       if (setCopilotBlocked.match(action)) {
         if (before.copilot.blocked !== action.payload) {
-          const resumeAutomatic = pendingAutomatic && !action.payload;
-          invalidate();
+          if (before.copilot.proposal) lastAttempt = undefined;
+          invalidate('invalidated', action.payload ? 'editor_blocked' : 'editor_resumed');
           store.dispatch(slice.actions.observed({ changed: false }));
-          if (resumeAutomatic && copilotEligible(store.getState())) {
-            pendingAutomatic = true;
-            pendingTrace = newTrace('automatic', lastCommitAt);
-            timer = setTimeout(() => {
-              pendingAutomatic = false;
-              const trace = pendingTrace;
-              pendingTrace = undefined;
-              void predict('automatic', trace);
-            }, 650);
-          }
+          scheduleAutomatic(interactionStarted);
         }
         return result;
       }
       if (action.type.startsWith('copilot/')) return result;
       const after = store.getState(),
         newEditor = after.editor.present;
+      const serverChanged = serverIdentity(before) !== serverIdentity(after);
       const sessionChanged =
         [
           'editor/openDocumentFromDisk/fulfilled',
           'editor/openDocumentFromMemory/fulfilled',
           'editor/closeDocument/pending',
         ].includes(action.type) ||
-        before.server !== after.server ||
+        serverChanged ||
         oldEditor?.document.sources !== newEditor?.document.sources;
       if (sessionChanged) {
-        lastCommitAt = undefined;
-        invalidate();
+        lastAttempt = undefined;
+        invalidate('invalidated', action.type);
         store.dispatch(slice.actions.resetSession(uuidv4()));
+        if (serverChanged) {
+          store.dispatch(slice.actions.health({ status: null }));
+          void checkHealth();
+        }
+        scheduleAutomatic(interactionStarted);
         return result;
+      }
+      if (before.server !== after.server) {
+        void checkHealth();
+        scheduleAutomatic(interactionStarted);
       }
       if (!oldEditor || !newEditor) return result;
       const oldDocument = sessionDocument(oldEditor.document),
         newDocument = sessionDocument(newEditor.document);
+      const documentChanged = oldEditor.document !== newEditor.document;
+      const manualEdit =
+        documentChanged &&
+        before.copilot.enabled &&
+        action.type !== acceptCopilotTransaction.type &&
+        action.type !== '@@redux-undo/UNDO'
+          ? inspectManualEdit(oldDocument, newDocument)
+          : null;
       const changed =
-        oldEditor.document !== newEditor.document &&
-        sessionHash(oldDocument) !== sessionHash(newDocument);
+        documentChanged &&
+        (manualEdit ? manualEdit.changed : sessionHash(oldDocument) !== sessionHash(newDocument));
       const contextChanged =
         sessionHash(editorContext(oldEditor)) !== sessionHash(editorContext(newEditor)) ||
         before.nav.page !== after.nav.page;
       if (!changed && !contextChanged) return result;
-      if (changed) lastCommitAt = performance.now();
       let transition: CommittedTransition | undefined;
       const proposal = before.copilot.proposal;
       let acceptedProposal: CopilotResponse | undefined;
@@ -711,7 +981,7 @@ export const createCopilotMiddleware =
             if (before.copilot.accepted[undoOf] && !before.copilot.accepted[undoOf].undone)
               undoneId = undoOf;
           }
-        } else prediction = inferManualPrediction(oldDocument, newDocument);
+        } else prediction = manualEdit?.prediction ?? null;
         if (prediction)
           transition = {
             sequence: before.copilot.sequence + 1,
@@ -732,7 +1002,8 @@ export const createCopilotMiddleware =
         );
         feedback(acceptedProposal, 'accepted', transition);
       } else {
-        invalidate();
+        if (!copilotEligible(after) && proposal) lastAttempt = undefined;
+        invalidate('invalidated', action.type);
         if (transition) transition.sequence = store.getState().copilot.sequence + 1;
         store.dispatch(slice.actions.observed({ changed, transition }));
         if (undoneId && transition) {
@@ -740,25 +1011,8 @@ export const createCopilotMiddleware =
           store.dispatch(slice.actions.undone(undoneId));
         }
       }
-      if (changed && (!transition || store.getState().copilot.history.length >= 32))
-        store.dispatch(slice.actions.resetSession(uuidv4()));
-      if (
-        changed &&
-        store.getState().copilot.enabled &&
-        action.type !== '@@redux-undo/UNDO' &&
-        action.type !== '@@redux-undo/REDO'
-      ) {
-        pendingAutomatic = true;
-        if (copilotEligible(store.getState())) {
-          pendingTrace = newTrace('automatic', lastCommitAt);
-          timer = setTimeout(() => {
-            pendingAutomatic = false;
-            const trace = pendingTrace;
-            pendingTrace = undefined;
-            void predict('automatic', trace);
-          }, 650);
-        }
-      }
+      if (changed && !transition) store.dispatch(slice.actions.resetSession(uuidv4()));
+      scheduleAutomatic(interactionStarted);
       return result;
     };
   };

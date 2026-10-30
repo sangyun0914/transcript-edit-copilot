@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../state';
 import { Pane } from 'evergreen-ui';
@@ -11,6 +11,7 @@ import {
   memoizedTimedDocumentItems,
 } from '../../state/editor/selectors';
 import _ from 'lodash';
+import { currentCopilotProposal } from '../../state/copilot';
 
 export function Cursor(): JSX.Element {
   const theme = useTheme();
@@ -19,29 +20,33 @@ export function Cursor(): JSX.Element {
   );
 
   const [ref, setRef] = useState<HTMLDivElement | null>(null);
-  const now = Date.now();
-  const [scrollBlockedLast, setScrollBlockedLast] = useState(now);
+  const scrollBlockedLast = useRef(Date.now());
+  const hasPreview = Boolean(useSelector(currentCopilotProposal));
 
   // we do this to re-render the cursor when the parent container size changes
   const _parentSize = useElementSize(ref?.parentElement);
 
   const cursorPosition = useComputeCursorPosition(ref?.parentElement);
-  if (isCorrection || cursorPosition == null) {
+  useEffect(() => {
+    const scrollContainer = document.getElementById('scroll-container');
+    if (
+      !isCorrection &&
+      !hasPreview &&
+      cursorPosition &&
+      scrollContainer &&
+      Date.now() - scrollBlockedLast.current > 1000 &&
+      (scrollContainer.scrollTop > cursorPosition.top - 20 ||
+        scrollContainer.scrollTop + scrollContainer.clientHeight - 20 < cursorPosition.top)
+    ) {
+      const timer = setTimeout(() => {
+        scrollContainer.scrollTo({ top: cursorPosition.top - 30, behavior: 'smooth' });
+        scrollBlockedLast.current = Date.now();
+      });
+      return () => clearTimeout(timer);
+    }
+  });
+  if (isCorrection || cursorPosition == null)
     return <div style={{ display: 'none' }} ref={(ref: HTMLDivElement) => setRef(ref)} />;
-  }
-
-  const scrollContainer = document.getElementById('scroll-container');
-  if (
-    scrollContainer &&
-    now - scrollBlockedLast > 1000 &&
-    (scrollContainer.scrollTop > cursorPosition.top - 20 ||
-      scrollContainer.scrollTop + scrollContainer.clientHeight - 20 < cursorPosition.top)
-  ) {
-    setTimeout(() => {
-      scrollContainer.scrollTo({ top: cursorPosition.top - 30, behavior: 'smooth' });
-      setScrollBlockedLast(now);
-    });
-  }
 
   return (
     <Pane

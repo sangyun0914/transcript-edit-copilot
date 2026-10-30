@@ -43,13 +43,24 @@ export type CopilotOutcome =
   | 'invalidated';
 
 export interface CopilotFeedback {
+  event_id: string;
   document_id: string;
+  request: CopilotRequestIdentity;
   proposal_id: string;
   outcome: CopilotOutcome;
   sequence: number;
   origin: 'human' | 'ai_computer_use' | 'synthetic';
   reason: 'unspecified';
+  observed_at: string;
+  revision: number | null;
+  interaction_epoch: number | null;
   transition?: CommittedTransition;
+}
+
+export interface CopilotHistoryTip {
+  transaction_id: string | null;
+  sequence: number;
+  count: number;
 }
 
 export interface CopilotResponse {
@@ -64,6 +75,7 @@ export interface CopilotResponse {
   context: Record<string, unknown>;
   model: Record<string, unknown>;
   timings: Record<string, number | string>;
+  history_tip?: CopilotHistoryTip;
 }
 
 export function sameRequest(a: CopilotRequestIdentity, b: CopilotRequestIdentity): boolean {
@@ -78,6 +90,58 @@ export function sameRequest(a: CopilotRequestIdentity, b: CopilotRequestIdentity
 export const isTimed = (item: V3DocumentItem): boolean =>
   ['text', 'non_text', 'artificial_silence'].includes(item.type);
 const equal = (a: unknown, b: unknown): boolean => sessionHash(a) === sessionHash(b);
+
+function structuralSessionEqual(a: unknown, b: unknown): boolean {
+  const supported = (value: any): boolean => {
+    if (typeof value === 'number') {
+      if (!Number.isFinite(value)) throw new Error('Session numbers must be finite.');
+      return true;
+    }
+    if (value === null || ['undefined', 'boolean', 'string'].includes(typeof value)) return true;
+    if (typeof value !== 'object') return false;
+    const prototype = Object.getPrototypeOf(value);
+    if (Array.isArray(value)) {
+      if (prototype !== Array.prototype || value.map !== Array.prototype.map) return false;
+      for (let index = 0; index < value.length; index++) {
+        const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+        if (!descriptor) {
+          if (index in value) return false;
+        } else if (!('value' in descriptor) || !supported(descriptor.value)) return false;
+      }
+      return true;
+    }
+    if (prototype !== Object.prototype && prototype !== null) return false;
+    for (const key of Object.keys(value)) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key)!;
+      if (!('value' in descriptor) || !supported(descriptor.value)) return false;
+    }
+    return true;
+  };
+  const compare = (left: any, right: any): boolean => {
+    if (left === right) return true;
+    if (left === null || right === null || typeof left !== 'object' || typeof right !== 'object')
+      return false;
+    if (Array.isArray(left) || Array.isArray(right)) {
+      if (!Array.isArray(left) || !Array.isArray(right)) return false;
+      // The current canonical array join makes [] and [undefined] identical.
+      const length = left.length === 1 && left[0] === undefined ? 0 : left.length;
+      const otherLength = right.length === 1 && right[0] === undefined ? 0 : right.length;
+      if (length !== otherLength) return false;
+      for (let index = 0; index < length; index++)
+        if (!compare(left[index], right[index])) return false;
+      return true;
+    }
+    const keys = Object.keys(left).filter((key) => left[key] !== undefined);
+    if (keys.length !== Object.keys(right).filter((key) => right[key] !== undefined).length)
+      return false;
+    return keys.every(
+      (key) => Object.prototype.hasOwnProperty.call(right, key) && compare(left[key], right[key])
+    );
+  };
+  // Keep the original canonicalizer for executable or non-plain JS values.
+  if (a === undefined || b === undefined || !supported(a) || !supported(b)) return equal(a, b);
+  return compare(a, b);
+}
 
 type SourceItem = Extract<V3DocumentItem, { type: 'text' | 'non_text' }>;
 
@@ -133,16 +197,23 @@ export function copilotPreviewText(prediction: CopilotPrediction): string {
 // The server decides proposal eligibility. This boundary verifies the exact UUID-bound
 // document change, including source intervals, before it enters undoable editor history.
 export function validCopilotResult(document: SessionDocument, response: CopilotResponse): boolean {
+  return validateCopilotResult(document, response);
+}
+
+function validateCopilotResult(
+  document: SessionDocument,
+  response: CopilotResponse,
+  hashes?: [string, string]
+): boolean {
   try {
     const result = response.result_document,
       prediction = response.prediction;
+    if (response.status !== 'proposal' || !response.proposal_id || !result) return false;
+    const [documentHash, resultHash] = hashes || [sessionHash(document), sessionHash(result)];
     if (
-      response.status !== 'proposal' ||
-      !response.proposal_id ||
-      !result ||
-      sessionHash(document) !== response.document_hash ||
-      sessionHash(result) !== response.result_hash ||
-      !equal(document.metadata, result.metadata) ||
+      documentHash !== response.document_hash ||
+      resultHash !== response.result_hash ||
+      !structuralSessionEqual(document.metadata, result.metadata) ||
       !lintDocumentContent(document.content).pass ||
       !lintDocumentContent(result.content).pass ||
       new Set(document.content.map((item) => item.uuid)).size !== document.content.length ||
@@ -247,7 +318,7 @@ export function validCopilotResult(document: SessionDocument, response: CopilotR
         return false;
       expected.splice(first - 2, 2);
     } else return false;
-    return equal(expected, result.content) && !equal(document, result);
+    return structuralSessionEqual(expected, result.content) && documentHash !== resultHash;
   } catch {
     return false;
   }
@@ -256,6 +327,26 @@ export function validCopilotResult(document: SessionDocument, response: CopilotR
 export function inferManualPrediction(
   before: SessionDocument,
   after: SessionDocument
+): CommittedTransition['prediction'] | null {
+  return inferManualPredictionWithHashes(before, after);
+}
+
+export function inspectManualEdit(
+  before: SessionDocument,
+  after: SessionDocument
+): { changed: boolean; prediction: CommittedTransition['prediction'] | null } {
+  const hashes: [string, string] = [sessionHash(before), sessionHash(after)];
+  const changed = hashes[0] !== hashes[1];
+  return {
+    changed,
+    prediction: changed ? inferManualPredictionWithHashes(before, after, hashes) : null,
+  };
+}
+
+function inferManualPredictionWithHashes(
+  before: SessionDocument,
+  after: SessionDocument,
+  hashes?: [string, string]
 ): CommittedTransition['prediction'] | null {
   if (!equal(before.metadata, after.metadata)) return null;
   const patch = contentPatch(before, after),
@@ -266,16 +357,17 @@ export function inferManualPrediction(
     timed.findIndex((timedItem) => timedItem.uuid === item.uuid)
   );
   const validate = (prediction: CopilotPrediction): CopilotPrediction | null => {
+    const [documentHash, resultHash] = hashes || [sessionHash(before), sessionHash(after)];
     const response = {
       status: 'proposal',
       proposal_id: 'manual',
       prediction,
       target_uuids: prediction.target?.map((alias) => timed[alias]?.uuid),
-      document_hash: sessionHash(before),
+      document_hash: documentHash,
       result_document: after,
-      result_hash: sessionHash(after),
+      result_hash: resultHash,
     } as CopilotResponse;
-    return validCopilotResult(before, response) ? prediction : null;
+    return validateCopilotResult(before, response, [documentHash, resultHash]) ? prediction : null;
   };
   if (
     patch.remove.length > 0 &&

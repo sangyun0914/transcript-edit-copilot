@@ -11,6 +11,8 @@ import copilot, {
   localCopilotServer,
   markCopilotShown,
   requestCopilot,
+  refreshCopilotHealth,
+  retryCopilotFeedback,
   setCopilotBlocked,
   setCopilotEnabled,
   setCopilotFeedbackOrigin,
@@ -23,7 +25,9 @@ import { acceptCopilotTransaction } from './editor/copilot';
 import { finishTranscriptCorrection } from './editor/transcript_correction';
 import { Page, NavState } from './nav';
 import type { ServerState } from './server';
+import serverReducer, { receiveLocalServerInfo } from './server';
 import * as api from '../server_api/copilot';
+import * as copilotCore from '../core/copilot';
 import { CopilotResponse, inferManualPrediction, validCopilotResult } from '../core/copilot';
 import {
   replaySession,
@@ -69,25 +73,32 @@ function proposal(body: api.PredictRequest): CopilotResponse {
   };
 }
 
-function setup(editor = initial()) {
+function setup(editor = initial(), healthStatus: string | null = 'ready') {
   const history = editorReducer(undefined, { type: '@@INIT' });
   const store = configureStore({
     reducer: {
       editor: editorReducer,
       copilot,
-      server: (state: ServerState = { servers: [local], selectedServer: 0 }): ServerState => state,
+      server: (
+        state: ServerState = { servers: [local], selectedServer: 0 },
+        action: { type: string; payload?: ServerState }
+      ): ServerState =>
+        action.type === 'test/server' ? action.payload! : serverReducer(state, action),
       nav: (state: NavState = { page: Page.Editor }): NavState => state,
     },
     preloadedState: {
       editor: { ...history, present: editor, _latestUnfiltered: editor },
       server: { servers: [local], selectedServer: 0 },
       nav: { page: Page.Editor },
-      copilot: copilot(undefined, { type: '@@INIT' }),
+      copilot: {
+        ...copilot(undefined, { type: '@@INIT' }),
+        documentId: 'test-document',
+        healthStatus,
+      },
     },
     middleware: (getDefault) =>
       getDefault({ serializableCheck: false }).concat(createCopilotMiddleware()),
   });
-  store.dispatch(setCopilotEnabled(true));
   return store;
 }
 
@@ -179,6 +190,15 @@ test('shown, acceptance and one undo retain actual consecutive transitions outsi
   expect(events.map((event) => event.sequence)).toEqual([2, 3, 4]);
   expect(events[1].transition).toEqual(commit);
   expect(events[2].transition).toEqual(undo);
+  expect(new Set(events.map((event) => event.event_id)).size).toBe(3);
+  expect(events.every((event) => event.request.request_id === response.request.request_id)).toBe(
+    true
+  );
+  expect(events.map((event) => event.revision)).toEqual([0, 1, 2]);
+  expect(events.every((event) => Number.isFinite(Date.parse(event.observed_at)))).toBe(true);
+  expect(store.getState().copilot.events.every((event) => event.persistence === 'saved')).toBe(
+    true
+  );
   const measured = store.getState().copilot.measurements;
   expect(measured.map((item) => item.event)).toEqual(
     expect.arrayContaining(['visible_complete_preview', 'accepted', 'undone'])
@@ -216,6 +236,226 @@ test('cursor changes cancel requests and reject late responses even after return
   );
 });
 
+test('metrics and feedback reuse validation, but a changed document is checked again', async () => {
+  const validate = jest.spyOn(copilotCore, 'validCopilotResult');
+  try {
+    const store = setup();
+    await store.dispatch(requestCopilot('explicit'));
+    const current = currentCopilotProposal(store.getState())!;
+    expect(validate).toHaveBeenCalledTimes(1);
+    store.dispatch(markCopilotShown(current.response.proposal_id!));
+    await flush();
+    expect(currentCopilotProposal(store.getState())?.shown).toBe(true);
+    expect(validate).toHaveBeenCalledTimes(1);
+    const changed = _.cloneDeep(store.getState());
+    const item = changed.editor.present!.document.content[1];
+    if (item.type !== 'text') throw new Error('fixture');
+    item.text = 'a different document';
+    expect(currentCopilotProposal(changed)).toBeNull();
+    expect(validate).toHaveBeenCalledTimes(2);
+  } finally {
+    validate.mockRestore();
+  }
+});
+
+test('only new committed edits are sent after acknowledgement, with one full retry after server reset', async () => {
+  const received: api.PredictRequest['history'] = [];
+  (api.predictCopilot as jest.Mock).mockImplementation(
+    async (_server, body: api.PredictRequest) => {
+      if (body.history_base === null) received.splice(0);
+      received.push(...body.history);
+      const last = received[received.length - 1];
+      return {
+        ...proposal(body),
+        history_tip: {
+          count: received.length,
+          transaction_id: last?.transaction_id ?? null,
+          sequence: last?.sequence ?? 0,
+        },
+      };
+    }
+  );
+  const store = setup();
+  store.dispatch(setText({ absoluteIndex: 1, text: 'helo one' }));
+  await store.dispatch(requestCopilot('explicit'));
+  const first = (api.predictCopilot as jest.Mock).mock.calls[0][1] as api.PredictRequest;
+  expect(first.history).toHaveLength(1);
+  expect(first.history_base).toBeNull();
+  store.dispatch(setText({ absoluteIndex: 1, text: 'helo two' }));
+  await store.dispatch(requestCopilot('explicit'));
+  const second = (api.predictCopilot as jest.Mock).mock.calls[1][1] as api.PredictRequest;
+  expect(second.history).toHaveLength(1);
+  expect(second.history_base).toBe(first.history[0].transaction_id);
+  expect(second.history[0]).toEqual(store.getState().copilot.history[1]);
+  store.dispatch(setUserIndex(3));
+  (api.predictCopilot as jest.Mock).mockRejectedValueOnce(
+    Object.assign(new Error('The local session was reset.'), { code: 'history_resync_required' })
+  );
+  await store.dispatch(requestCopilot('explicit'));
+  const attempted = (api.predictCopilot as jest.Mock).mock.calls[2][1] as api.PredictRequest;
+  const retried = (api.predictCopilot as jest.Mock).mock.calls[3][1] as api.PredictRequest;
+  expect(attempted.history).toEqual([]);
+  expect(attempted.history_base).toBe(second.history[0].transaction_id);
+  expect(retried.history).toEqual(store.getState().copilot.history);
+  expect(retried.history_base).toBeNull();
+  expect(retried.request.request_id).not.toBe(attempted.request.request_id);
+  const requestMeasurements = store
+    .getState()
+    .copilot.measurements.filter((m) => m.event === 'request');
+  expect(requestMeasurements[3].trace_id).toBe(requestMeasurements[2].trace_id);
+  const requests = [first, second, attempted, retried];
+  requests.forEach((body) => {
+    expect(body.request_transport).toBe('sequenced-v1');
+    expect(body.history_transport).toBe('incremental');
+    expect(body.request.request_id).toMatch(/^[0-9a-f-]{36}:\d+$/);
+    expect(body.request.request_id.split(':')[1]).toBe(String(body.sequence));
+  });
+  expect(requests.map((body) => body.sequence)).toEqual(
+    [...new Set(requests.map((body) => body.sequence))].sort((a, b) => a - b)
+  );
+  expect(store.getState().copilot.status).toBe('preview');
+  expect(store.getState().copilot.error).toBeNull();
+});
+
+test('acknowledged sessions retain the 32nd edit and its acceptance undo association', async () => {
+  const store = setup();
+  const received: api.PredictRequest['history'] = [];
+  (api.predictCopilot as jest.Mock).mockImplementation(
+    async (_server, body: api.PredictRequest) => {
+      received.push(...body.history);
+      const last = received[received.length - 1];
+      return {
+        ...proposal(body),
+        history_tip: {
+          count: received.length,
+          transaction_id: last.transaction_id,
+          sequence: last.sequence,
+        },
+      };
+    }
+  );
+  for (let i = 0; i < 31; i++) {
+    store.dispatch(setText({ absoluteIndex: 1, text: `manual ${i}` }));
+    await store.dispatch(requestCopilot('explicit'));
+  }
+  const documentId = store.getState().copilot.documentId;
+  const proposalId = store.getState().copilot.proposal?.response.proposal_id;
+  if (!proposalId) throw new Error('Missing engineering proposal.');
+  store.dispatch(markCopilotShown(proposalId));
+  store.dispatch(acceptCopilot());
+  await flush();
+  expect(store.getState().copilot.documentId).toBe(documentId);
+  expect(store.getState().copilot.history).toHaveLength(32);
+  const accepted = store.getState().copilot.history[31];
+  expect(store.getState().copilot.accepted[accepted.transaction_id].undone).toBe(false);
+  store.dispatch(ActionCreators.undo());
+  await flush();
+  expect(store.getState().copilot.history).toHaveLength(33);
+  expect(store.getState().copilot.accepted[accepted.transaction_id].undone).toBe(true);
+  expect((api.feedbackCopilot as jest.Mock).mock.calls.slice(-1)[0][1].outcome).toBe('undone');
+});
+
+test('a cancelled worker that remains busy retries the unchanged cursor automatically', async () => {
+  let finishOld: (response: CopilotResponse) => void = () => {};
+  (api.predictCopilot as jest.Mock)
+    .mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishOld = resolve;
+        })
+    )
+    .mockRejectedValueOnce(Object.assign(new Error('Worker still stopping.'), { code: 'busy' }));
+  const store = setup();
+  store.dispatch(setUserIndex(3));
+  jest.advanceTimersByTime(150);
+  await flush();
+  const first = (api.predictCopilot as jest.Mock).mock.calls[0][1];
+  store.dispatch(setUserIndex(1));
+  await flush();
+  expect(api.cancelCopilot).toHaveBeenCalledTimes(1);
+  jest.advanceTimersByTime(150);
+  await flush();
+  expect(api.predictCopilot).toHaveBeenCalledTimes(2);
+  jest.advanceTimersByTime(250);
+  await flush();
+  expect(api.predictCopilot).toHaveBeenCalledTimes(3);
+  const calls = (api.predictCopilot as jest.Mock).mock.calls.map((call) => call[1]);
+  expect(calls[2].sequence).toBeGreaterThan(calls[1].sequence);
+  expect(calls[2].request.request_id).not.toBe(calls[1].request.request_id);
+  const measurements = store.getState().copilot.measurements.filter((m) => m.event === 'request');
+  expect(measurements[2].trace_id).toBe(measurements[1].trace_id);
+  finishOld(proposal(first));
+  await flush();
+  expect(store.getState().copilot.proposal?.response.request).toEqual(calls[2].request);
+  expect(store.getState().copilot.error).toBeNull();
+});
+
+test('busy backoff is bounded and blocking the editor cancels its pending retry', async () => {
+  (api.predictCopilot as jest.Mock).mockRejectedValue(
+    Object.assign(new Error('Worker busy.'), { code: 'busy' })
+  );
+  const store = setup();
+  store.dispatch(setUserIndex(3));
+  jest.advanceTimersByTime(150);
+  await flush();
+  let calls = 1;
+  for (const delay of [250, 500, 1000, 2000, 2000]) {
+    jest.advanceTimersByTime(delay - 1);
+    await flush();
+    expect(api.predictCopilot).toHaveBeenCalledTimes(calls);
+    jest.advanceTimersByTime(1);
+    await flush();
+    expect(api.predictCopilot).toHaveBeenCalledTimes(++calls);
+  }
+  const originalTrace = store
+    .getState()
+    .copilot.measurements.find((m) => m.event === 'request')?.trace_id;
+  expect(originalTrace).toBeDefined();
+  store.dispatch(setCopilotBlocked(true));
+  jest.advanceTimersByTime(10000);
+  await flush();
+  expect(api.predictCopilot).toHaveBeenCalledTimes(calls);
+  store.dispatch(setCopilotBlocked(false));
+  jest.advanceTimersByTime(150);
+  await flush();
+  expect(api.predictCopilot).toHaveBeenCalledTimes(calls + 1);
+  const latestTrace = store
+    .getState()
+    .copilot.measurements.filter((m) => m.event === 'request')
+    .slice(-1)[0].trace_id;
+  expect(latestTrace).not.toBe(originalTrace);
+});
+
+test('automatic latency includes synchronous manual-edit preparation before debounce', async () => {
+  let now = 100;
+  const originalInfer = copilotCore.inspectManualEdit;
+  const clock = jest.spyOn(performance, 'now').mockImplementation(() => now);
+  const infer = jest.spyOn(copilotCore, 'inspectManualEdit').mockImplementation((before, after) => {
+    now += 40;
+    return originalInfer(before, after);
+  });
+  try {
+    const store = setup();
+    store.dispatch(setText({ absoluteIndex: 1, text: 'edited manually' }));
+    now = 290;
+    jest.advanceTimersByTime(150);
+    await flush();
+    const request = store.getState().copilot.measurements.find((m) => m.event === 'request');
+    expect(request?.since_trigger_ms).toBe(190);
+    now = 320;
+    const proposalId = store.getState().copilot.proposal?.response.proposal_id;
+    if (!proposalId) throw new Error('Missing engineering proposal.');
+    store.dispatch(markCopilotShown(proposalId));
+    const shown = store
+      .getState()
+      .copilot.measurements.find((m) => m.event === 'visible_complete_preview');
+    expect(shown?.since_trigger_ms).toBe(220);
+  } finally {
+    infer.mockRestore();
+    clock.mockRestore();
+  }
+});
+
 test('timings include automatic debounce and delayed visible preview; automation is labelled', async () => {
   let now = 0;
   const clock = jest.spyOn(performance, 'now').mockImplementation(() => now);
@@ -223,24 +463,25 @@ test('timings include automatic debounce and delayed visible preview; automation
     const store = setup();
     store.dispatch(setCopilotFeedbackOrigin('ai_computer_use'));
     store.dispatch(setText({ absoluteIndex: 1, text: 'helo again' }));
-    now = 650;
-    jest.advanceTimersByTime(650);
+    now = 150;
+    jest.advanceTimersByTime(150);
     await flush();
     const response = store.getState().copilot.proposal!.response;
     expect(
       store.getState().copilot.measurements.find((m) => m.event === 'request')?.since_trigger_ms
-    ).toBe(650);
+    ).toBe(150);
     expect(
       store.getState().copilot.measurements.some((m) => m.event === 'visible_complete_preview')
     ).toBe(false);
-    now = 800;
+    now = 300;
     store.dispatch(markCopilotShown(response.proposal_id!));
     const shown = store
       .getState()
       .copilot.measurements.find((m) => m.event === 'visible_complete_preview');
-    expect(shown?.since_trigger_ms).toBe(800);
+    expect(shown?.since_trigger_ms).toBe(300);
     expect(shown?.since_request_ms).toBe(150);
     await flush();
+    expect((api.predictCopilot as jest.Mock).mock.calls[0][1].origin).toBe('ai_computer_use');
     expect((api.feedbackCopilot as jest.Mock).mock.calls[0][1].origin).toBe('ai_computer_use');
     expect(store.getState().copilot.history[0].origin).toBe('ai_computer_use');
   } finally {
@@ -295,7 +536,7 @@ test('inline corrections debounce only after text focus is released, with real e
   await flush();
   expect(api.predictCopilot).not.toHaveBeenCalled();
   store.dispatch(setCopilotBlocked(false));
-  jest.advanceTimersByTime(650);
+  jest.advanceTimersByTime(150);
   await flush();
   expect(api.predictCopilot).toHaveBeenCalledTimes(1);
   const request = (api.predictCopilot as jest.Mock).mock.calls[0][1];
@@ -316,14 +557,226 @@ test('failed acceptance feedback blocks further inference until a new explicit s
     if (event.outcome === 'accepted') throw Error('offline');
   });
   store.dispatch(acceptCopilot());
+  expect(
+    store.getState().copilot.events.find((event) => event.outcome === 'accepted')?.persistence
+  ).toBe('pending');
   await flush();
   expect(store.getState().copilot.feedbackError).toBe('offline');
+  expect(
+    store.getState().copilot.events.find((event) => event.outcome === 'accepted')?.persistence
+  ).toBe('failed');
   await store.dispatch(requestCopilot('explicit'));
   expect(api.predictCopilot).toHaveBeenCalledTimes(1);
   expect(store.getState().editor.past).toHaveLength(1);
   store.dispatch(setCopilotEnabled(false));
   store.dispatch(setCopilotEnabled(true));
   expect(store.getState().copilot.feedbackError).toBeNull();
+});
+
+test('feedback can be retried with the original event without discarding the session or edit history', async () => {
+  const store = setup();
+  await store.dispatch(requestCopilot('explicit'));
+  store.dispatch(markCopilotShown(store.getState().copilot.proposal!.response.proposal_id!));
+  await flush();
+  (api.feedbackCopilot as jest.Mock).mockRejectedValueOnce(new Error('offline'));
+  store.dispatch(acceptCopilot());
+  await flush();
+  const failed = (api.feedbackCopilot as jest.Mock).mock.calls[1][1];
+  expect(store.getState().copilot.feedbackError).toBe('offline');
+  await store.dispatch(retryCopilotFeedback());
+  expect((api.feedbackCopilot as jest.Mock).mock.calls[2][1]).toEqual(failed);
+  expect(store.getState().copilot.feedbackError).toBeNull();
+  expect(store.getState().copilot.documentId).toBe('test-document');
+  expect(store.getState().copilot.history).toHaveLength(1);
+  expect(store.getState().editor.past).toHaveLength(1);
+});
+
+test('feedback retry preserves chronology when shown fails before the preview is invalidated', async () => {
+  const store = setup();
+  await store.dispatch(requestCopilot('explicit'));
+  (api.feedbackCopilot as jest.Mock).mockRejectedValueOnce(new Error('offline'));
+  store.dispatch(markCopilotShown(store.getState().copilot.proposal!.response.proposal_id!));
+  store.dispatch(setUserIndex(3));
+  await flush();
+  expect(api.feedbackCopilot).toHaveBeenCalledTimes(1);
+  expect(store.getState().copilot.events.map((event) => event.persistence)).toEqual([
+    'failed',
+    'failed',
+  ]);
+  await store.dispatch(retryCopilotFeedback());
+  expect((api.feedbackCopilot as jest.Mock).mock.calls.map((call) => call[1].sequence)).toEqual([
+    2, 2, 3,
+  ]);
+  expect((api.feedbackCopilot as jest.Mock).mock.calls.map((call) => call[1].outcome)).toEqual([
+    'shown',
+    'shown',
+    'invalidated',
+  ]);
+  expect(store.getState().copilot.feedbackError).toBeNull();
+  expect(store.getState().copilot.events.every((event) => event.persistence === 'saved')).toBe(
+    true
+  );
+});
+
+test('opening a document automatically waits for the local model, then requests once without a toggle', async () => {
+  (api.copilotHealth as jest.Mock).mockResolvedValueOnce({ status: 'starting' });
+  const store = setup(initial(), null);
+  expect(store.getState().copilot.enabled).toBe(true);
+  store.dispatch({ type: 'editor/openDocumentFromMemory/fulfilled', payload: initial().document });
+  await flush();
+  jest.advanceTimersByTime(1000);
+  await flush();
+  expect(api.predictCopilot).not.toHaveBeenCalled();
+  await store.dispatch(refreshCopilotHealth());
+  jest.advanceTimersByTime(149);
+  await flush();
+  expect(api.predictCopilot).not.toHaveBeenCalled();
+  jest.advanceTimersByTime(1);
+  await flush();
+  expect(api.predictCopilot).toHaveBeenCalledTimes(1);
+  expect((api.predictCopilot as jest.Mock).mock.calls[0][1].trigger).toBe('automatic');
+  expect((api.predictCopilot as jest.Mock).mock.calls[0][1].request.document_id).not.toBe('');
+  await store.dispatch(refreshCopilotHealth());
+  store.dispatch({ type: 'test/server', payload: { servers: [{ ...local }], selectedServer: 0 } });
+  jest.advanceTimersByTime(1000);
+  await flush();
+  expect(api.predictCopilot).toHaveBeenCalledTimes(1);
+});
+
+test('cold gateway failure becomes unavailable, and recovery automatically requests once', async () => {
+  const store = setup(initial(), null);
+  store.dispatch({ type: 'test/server', payload: { servers: [], selectedServer: 0 } });
+  store.dispatch(receiveLocalServerInfo({ state: 'failed to start', port: null, token: null }));
+  expect(store.getState().server.servers).toEqual([]);
+  expect(store.getState().copilot.healthStatus).toBe('unavailable');
+  jest.advanceTimersByTime(1000);
+  await flush();
+  expect(api.copilotHealth).not.toHaveBeenCalled();
+  expect(api.predictCopilot).not.toHaveBeenCalled();
+  store.dispatch(receiveLocalServerInfo({ state: 'starting', port: 45001, token: null }));
+  expect(store.getState().copilot.healthStatus).toBe('starting');
+  expect(store.getState().server.servers).toEqual([]);
+  store.dispatch(receiveLocalServerInfo({ state: 'running', port: 45001, token: 'ready' }));
+  await flush();
+  jest.advanceTimersByTime(150);
+  await flush();
+  expect(store.getState().copilot.healthStatus).toBe('ready');
+  expect(api.predictCopilot).toHaveBeenCalledTimes(1);
+  expect((api.predictCopilot as jest.Mock).mock.calls[0][1].trigger).toBe('automatic');
+});
+
+test('a late healthy response cannot overwrite a stopped gateway lifecycle', async () => {
+  let resolve: (value: { status: string }) => void = () => {};
+  (api.copilotHealth as jest.Mock).mockImplementationOnce(
+    () =>
+      new Promise((done) => {
+        resolve = done;
+      })
+  );
+  const store = setup(initial(), null);
+  const pending = store.dispatch(refreshCopilotHealth());
+  store.dispatch(
+    receiveLocalServerInfo({ state: 'stopped', port: local.port, token: local.token })
+  );
+  expect(store.getState().copilot.healthStatus).toBe('unavailable');
+  resolve({ status: 'ready' });
+  await pending;
+  expect(store.getState().copilot.healthStatus).toBe('unavailable');
+  jest.advanceTimersByTime(1000);
+  await flush();
+  expect(api.predictCopilot).not.toHaveBeenCalled();
+});
+
+test('cursor movement debounces automatically, cancels old inference and resumes after typing', async () => {
+  let resolve: (value: CopilotResponse) => void = () => {};
+  let body: api.PredictRequest;
+  (api.predictCopilot as jest.Mock).mockImplementationOnce((_server, value) => {
+    body = value;
+    return new Promise((done) => {
+      resolve = done;
+    });
+  });
+  const store = setup();
+  store.dispatch(setUserIndex(3));
+  jest.advanceTimersByTime(150);
+  await flush();
+  expect(api.predictCopilot).toHaveBeenCalledTimes(1);
+  store.dispatch(setUserIndex(2));
+  expect((api.predictCopilot as jest.Mock).mock.calls[0][2].aborted).toBe(true);
+  jest.advanceTimersByTime(75);
+  store.dispatch(setUserIndex(1));
+  store.dispatch(setCopilotBlocked(true));
+  jest.advanceTimersByTime(1000);
+  await flush();
+  resolve(proposal(body!));
+  await flush();
+  expect(store.getState().copilot.proposal).toBeNull();
+  expect(api.predictCopilot).toHaveBeenCalledTimes(1);
+  store.dispatch(setCopilotBlocked(false));
+  jest.advanceTimersByTime(150);
+  await flush();
+  expect(api.predictCopilot).toHaveBeenCalledTimes(2);
+  expect((api.predictCopilot as jest.Mock).mock.calls[1][1].focus_uuid).toBe('w1');
+});
+
+test('a busy model defers automatic inference until ready without requiring another cursor movement', async () => {
+  const store = setup(initial(), 'busy');
+  store.dispatch(setUserIndex(3));
+  jest.advanceTimersByTime(1000);
+  await flush();
+  expect(api.predictCopilot).not.toHaveBeenCalled();
+  await store.dispatch(refreshCopilotHealth());
+  jest.advanceTimersByTime(150);
+  await flush();
+  expect(api.predictCopilot).toHaveBeenCalledTimes(1);
+  expect((api.predictCopilot as jest.Mock).mock.calls[0][1].focus_uuid).toBe('w2');
+});
+
+test('automatic inference rechecks readiness after its debounce expires', async () => {
+  const store = setup();
+  store.dispatch(setUserIndex(3));
+  jest.advanceTimersByTime(149);
+  (api.copilotHealth as jest.Mock).mockResolvedValueOnce({ status: 'busy' });
+  await store.dispatch(refreshCopilotHealth());
+  jest.advanceTimersByTime(1);
+  await flush();
+  expect(api.predictCopilot).not.toHaveBeenCalled();
+  await store.dispatch(refreshCopilotHealth());
+  jest.advanceTimersByTime(150);
+  await flush();
+  expect(api.predictCopilot).toHaveBeenCalledTimes(1);
+});
+
+test('no-action and dismissal do not repeatedly predict the same unchanged context', async () => {
+  (api.predictCopilot as jest.Mock).mockImplementationOnce(async (_server, body) => ({
+    ...proposal(body),
+    status: 'no_action',
+    proposal_id: null,
+    prediction: { action: 'no_action' },
+    result_document: null,
+    result_hash: null,
+    target_uuids: [],
+  }));
+  const store = setup();
+  store.dispatch(setUserIndex(3));
+  jest.advanceTimersByTime(150);
+  await flush();
+  store.dispatch(setCopilotBlocked(true));
+  store.dispatch(setCopilotBlocked(false));
+  await store.dispatch(refreshCopilotHealth());
+  jest.advanceTimersByTime(2000);
+  await flush();
+  expect(api.predictCopilot).toHaveBeenCalledTimes(1);
+  store.dispatch(setUserIndex(1));
+  jest.advanceTimersByTime(150);
+  await flush();
+  store.dispatch(markCopilotShown(store.getState().copilot.proposal!.response.proposal_id!));
+  store.dispatch(dismissCopilot());
+  store.dispatch(setCopilotBlocked(true));
+  store.dispatch(setCopilotBlocked(false));
+  jest.advanceTimersByTime(2000);
+  await flush();
+  expect(api.predictCopilot).toHaveBeenCalledTimes(2);
 });
 
 test('copilot never uses a remote ASR configuration, and busy editor states are ineligible', () => {
@@ -408,7 +861,7 @@ test('manual word edits keep low-confidence source history and leave no-ops unch
   expect(sessionDocument(store.getState().editor.present!.document)).toEqual(before);
   expect(store.getState().copilot.documentId).toBe(sessionId);
   expect(store.getState().copilot.history).toHaveLength(0);
-  jest.advanceTimersByTime(650);
+  jest.advanceTimersByTime(150);
   await flush();
   expect(api.predictCopilot).not.toHaveBeenCalled();
 
@@ -428,7 +881,7 @@ test('manual word edits keep low-confidence source history and leave no-ops unch
     prediction: { action: 'correct_text', target: [0], text: 'hello' },
     undo_of: null,
   });
-  jest.advanceTimersByTime(650);
+  jest.advanceTimersByTime(150);
   await flush();
   expect(api.predictCopilot).toHaveBeenCalledTimes(1);
   const request = (api.predictCopilot as jest.Mock).mock.calls[0][1];

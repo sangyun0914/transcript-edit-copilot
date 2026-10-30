@@ -21,6 +21,7 @@ import { openDocumentFromDisk, openDocumentFromMemory } from '../state/editor/io
 import { getEmptyDocument } from '../core/document';
 import { MenuBar, MenuGroup, MenuItem } from '../components/Menu';
 import { RootState } from '../state';
+import { localServerStatus } from '../state/server';
 import { shell } from 'electron';
 
 const BottomRightContainer = styled.div`
@@ -34,11 +35,20 @@ const BottomRightContainer = styled.div`
 `;
 
 export function LandingPage(): JSX.Element {
-  const connected = useSelector(
-    (state: RootState) => state.server.servers[state.server.selectedServer]
-  );
+  const servers = useSelector((state: RootState) => state.server);
+  const selected = servers.servers[servers.selectedServer];
+  const connected = selected && (!selected.state || selected.state === 'running');
+  const unavailable = !connected && localServerStatus(servers) === 'unavailable';
 
-  return <AppContainer>{connected ? <LandingContent /> : <ConnectingContent />}</AppContainer>;
+  return (
+    <AppContainer>
+      {connected || unavailable ? (
+        <LandingContent serverUnavailable={unavailable} />
+      ) : (
+        <ConnectingContent />
+      )}
+    </AppContainer>
+  );
 }
 
 function ExternalLink({ href, children }: { href: string; children: React.ReactNode }) {
@@ -67,35 +77,51 @@ function ConnectingContent(): JSX.Element {
   );
 }
 
-function LandingContent(): JSX.Element {
+function LandingContent({ serverUnavailable }: { serverUnavailable: boolean }): JSX.Element {
   const dispatch = useDispatch();
 
   return (
     <>
       <MenuBar>
         <MenuGroup label={'File'}>
-          <MenuItem
-            callback={() => dispatch(openDocumentFromDisk())}
-            accelerator={'CommandOrControl+O'}
-            label={'Open'}
-          />
-          <MenuItem
-            callback={() => dispatch(transcribeFile())}
-            accelerator={'CommandOrControl+I'}
-            label={'Import & Transcribe'}
-          />
-          <MenuItem
-            callback={() => dispatch(openDocumentFromMemory(getEmptyDocument()))}
-            accelerator={'CommandOrControl+Shift+N'}
-            label={'New blank document'}
-          />
+          {[
+            <MenuItem
+              key="open"
+              callback={() => dispatch(openDocumentFromDisk())}
+              accelerator={'CommandOrControl+O'}
+              label={'Open'}
+            />,
+            ...(!serverUnavailable
+              ? [
+                  <MenuItem
+                    key="import"
+                    callback={() => dispatch(transcribeFile())}
+                    accelerator={'CommandOrControl+I'}
+                    label={'Import & Transcribe'}
+                  />,
+                ]
+              : []),
+            <MenuItem
+              key="new"
+              callback={() => dispatch(openDocumentFromMemory(getEmptyDocument()))}
+              accelerator={'CommandOrControl+Shift+N'}
+              label={'New blank document'}
+            />,
+          ]}
         </MenuGroup>
       </MenuBar>
 
       <LandingTour />
       <TitleBar />
       <MainCenterColumn>
+        {serverUnavailable && (
+          <Text role="alert">
+            The local server is unavailable. You can open and edit documents. Restart the app to
+            restore transcription and suggestions.
+          </Text>
+        )}
         <Button
+          disabled={serverUnavailable}
           appearance="primary"
           onClick={() => dispatch(transcribeFile())}
           id={'import' /* for tour */}
@@ -128,7 +154,11 @@ function LandingContent(): JSX.Element {
           <IconButton icon={CommentIcon} onClick={() => resetTour()} />
         </Tooltip>
         <Tooltip content="manage transcription models">
-          <IconButton icon={SettingsIcon} onClick={() => dispatch(openModelManager())} />
+          <IconButton
+            disabled={serverUnavailable}
+            icon={SettingsIcon}
+            onClick={() => dispatch(openModelManager())}
+          />
         </Tooltip>
       </BottomRightContainer>
     </>

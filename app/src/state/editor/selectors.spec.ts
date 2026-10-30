@@ -727,6 +727,48 @@ test('renderItems', () => {
   ]);
 });
 
+test('render items: imported null speaker uses the unnamed label without changing the document', () => {
+  const content: V3DocumentItem[] = JSON.parse(`[
+    {"type":"paragraph_start","uuid":"p1","speaker":null,"language":"en"},
+    {"type":"text","uuid":"w1","source":"recording","sourceStart":4,"length":1,"text":"One","conf":1},
+    {"type":"paragraph_end","uuid":"e1"},
+    {"type":"paragraph_start","uuid":"p2","speaker":"A","language":"en"},
+    {"type":"text","uuid":"w2","source":"recording","sourceStart":5,"length":1,"text":"Two","conf":1},
+    {"type":"paragraph_end","uuid":"e2"}
+  ]`);
+  const before = JSON.stringify(content);
+  expect(memoizedDocumentRenderItems(content, true)).toEqual([
+    {
+      type: 'media',
+      absoluteStart: 0,
+      length: 1,
+      source: 'recording',
+      sourceStart: 4,
+      speaker: '',
+    },
+    {
+      type: 'media',
+      absoluteStart: 1,
+      length: 1,
+      source: 'recording',
+      sourceStart: 5,
+      speaker: 'A',
+    },
+  ]);
+  expect(memoizedDocumentRenderItems(content, false)).toEqual([
+    {
+      type: 'media',
+      absoluteStart: 0,
+      length: 2,
+      source: 'recording',
+      sourceStart: 4,
+      speaker: null,
+    },
+  ]);
+  expect(JSON.stringify(content)).toBe(before);
+  expect(() => memoizedDocumentRenderItems(content.slice(1), false)).toThrow('Current speaker');
+});
+
 test('render items: source silence', () => {
   expect(
     memoizedDocumentRenderItems(

@@ -11,6 +11,7 @@ import {
   CopilotResponse,
   copilotPreviewText,
   inferManualPrediction,
+  inspectManualEdit,
   isTimed,
   validCopilotResult,
 } from './copilot';
@@ -76,6 +77,10 @@ test.each(fixtures)('all-seven reference operation validates and stays undoable:
   const edits = row.prediction.action !== 'no_action';
   expect(validCopilotResult(row.before, response)).toBe(edits);
   expect(inferManualPrediction(row.before, row.after)).toEqual(edits ? row.prediction : null);
+  expect(inspectManualEdit(row.before, row.after)).toEqual({
+    changed: edits,
+    prediction: edits ? row.prediction : null,
+  });
   dispatch(
     acceptCopilotTransaction({
       proposal: response,
@@ -98,6 +103,77 @@ test.each(fixtures)('all-seven reference operation validates and stays undoable:
   expect(replaySession(events)).toEqual(row.after);
 });
 
+test.each([
+  { id: 'delete-with-gap', action: 'delete_span', target: [1, 2], expectedUuid: 'w3' },
+  { id: 'remove-pause', action: 'remove_silence', target: [1], expectedUuid: 'w2' },
+  { id: 'delete-with-gap', action: 'delete_span', target: [3], expectedUuid: 'w2' },
+  { id: 'delete-with-gap', action: 'delete_span', target: [0, 1, 2, 3], expectedUuid: null },
+])('accepted $action keeps the cursor near removed aliases $target', (row) => {
+  const { before } = fixture(row.id);
+  const timed = before.content.filter(isTimed);
+  const removed = row.target.map((alias) => timed[alias].uuid);
+  const after = {
+    ...before,
+    content: before.content.filter((item: any) => !removed.includes(item.uuid)),
+  };
+  const response = responseFor(before, after, {
+    action: row.action as CopilotPrediction['action'],
+    target: row.target,
+  });
+  const original = _.cloneDeep(defaultEditorState);
+  original.document.content = before.content;
+  original.cursor = { ...original.cursor, current: 'user', userIndex: 2 };
+  let state = editorReducer(undefined, { type: '@@INIT' });
+  state = { ...state, present: original, _latestUnfiltered: original };
+  const accept = acceptCopilotTransaction({
+    proposal: response,
+    context_hash: sessionHash(sessionContext(original)),
+  });
+  state = editorReducer(state, accept);
+  expect(sessionDocument(state.present!.document)).toEqual(after);
+  const expectedIndex = row.expectedUuid
+    ? after.content.findIndex((item: any) => item.uuid === row.expectedUuid)
+    : 0;
+  expect(state.present!.cursor).toEqual({
+    ...original.cursor,
+    userIndex: expectedIndex,
+  });
+  expect(state.past).toHaveLength(1);
+  const accepted = state;
+  state = editorReducer(state, accept);
+  expect(state).toBe(accepted);
+  state = editorReducer(state, ActionCreators.undo());
+  expect(state.present).toEqual(original);
+});
+
+test('deleting the last word of a caption focuses the next caption past its markers', () => {
+  const { before } = fixture('delete-with-gap');
+  before.content.push(
+    { type: 'paragraph_start', uuid: 'next-p', speaker: 'speaker', language: 'ko' },
+    { ...before.content[4], uuid: 'next-word', sourceStart: 2.4 },
+    { type: 'paragraph_end', uuid: 'next-e' }
+  );
+  const after = {
+    ...before,
+    content: before.content.filter((item: any) => item.uuid !== 'w3'),
+  };
+  const original = _.cloneDeep(defaultEditorState);
+  original.document.content = before.content;
+  original.cursor = { ...original.cursor, current: 'user', userIndex: 4 };
+  const payload = {
+    proposal: responseFor(before, after, { action: 'delete_span', target: [3] }),
+    context_hash: sessionHash(sessionContext(original)),
+  };
+  const stale = _.cloneDeep(original);
+  stale.cursor.userIndex = 1;
+  expect(acceptCopilotTransaction.reducer(stale, payload)).toBeUndefined();
+  expect(stale.document.content).toEqual(before.content);
+  expect(stale.cursor.userIndex).toBe(1);
+  acceptCopilotTransaction.reducer(original, payload);
+  expect(original.document.content[original.cursor.userIndex].uuid).toBe('next-word');
+  expect(sessionDocument(original.document)).toEqual(after);
+});
+
 test('target aliases must match UUIDs even if the proposed source edit itself is valid', () => {
   const { before, response } = fixture('delete-with-gap');
   for (const targets of [
@@ -113,6 +189,48 @@ test('target aliases must match UUIDs even if the proposed source edit itself is
         prediction: { ...response.prediction, target: targets },
       })
     ).toBe(false);
+  }
+});
+
+test('manual edit validation does not make server response hashes trusted', () => {
+  const { before, after, prediction, response } = fixture('delete-with-gap');
+  expect(inferManualPrediction(before, after)).toEqual(prediction);
+  expect(inspectManualEdit(before, after)).toEqual({ changed: true, prediction });
+  for (const key of ['document_hash', 'result_hash']) {
+    expect(validCopilotResult(before, { ...response, [key]: '0'.repeat(64) })).toBe(false);
+  }
+  (after.content[1] as any).text = 'changed after manual validation';
+  expect(validCopilotResult(before, response)).toBe(false);
+  expect(inspectManualEdit(before, after)).toEqual({ changed: true, prediction: null });
+});
+
+test('public result validation preserves typed-hash equality for metadata and content', () => {
+  const { before, after, prediction } = fixture('delete-with-gap');
+  before.metadata = {
+    zero: -0,
+    nested: [{ label: 'same', omitted: undefined }, [undefined]],
+    omitted: undefined,
+  };
+  after.metadata = { nested: [{ label: 'same' }, []], zero: 0 };
+  before.content[0].omitted = undefined;
+  after.content = after.content.map((item: Record<string, unknown>) =>
+    Object.fromEntries(Object.entries(item).reverse())
+  );
+  const response = responseFor(before, after, prediction);
+  expect(validCopilotResult(before, response)).toBe(true);
+  for (const nested of [
+    [{ other: 'same' }, []],
+    [{ label: 'same' }, [null]],
+  ]) {
+    const changed = _.cloneDeep(response);
+    changed.result_document!.metadata.nested = nested;
+    changed.result_hash = sessionHash(changed.result_document);
+    expect(validCopilotResult(before, changed)).toBe(false);
+  }
+  for (const zero of [NaN, Infinity]) {
+    const changed = _.cloneDeep(response);
+    changed.result_document!.metadata.zero = zero;
+    expect(validCopilotResult(before, changed)).toBe(false);
   }
 });
 

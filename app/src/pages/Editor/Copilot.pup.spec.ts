@@ -124,25 +124,21 @@ async function openScene(language: 'en' | 'ko', documentContent?: Record<string,
     },
     { language, documentContent: documentContent || null }
   );
-  await page.waitForSelector('[aria-label="Enable local copilot"]');
-  await page.click('[aria-label="Enable local copilot"]');
-  await page.waitForFunction(() => {
-    const button = Array.from(document.querySelectorAll('button')).find(
-      (item) => item.textContent === 'Predict next edit'
-    );
-    return button && !button.disabled;
-  });
 }
 
 async function predict() {
   await page.evaluate(() => {
     document.getElementById('document')?.focus();
+    window.store.dispatch(window.reducers.setCopilotEnabled(true));
     return window.store.dispatch(window.reducers.requestCopilot('explicit'));
   });
 }
 
 const content = () => page.evaluate(() => window.store.getState().editor.present!.document.content);
-const waitPreview = () => page.waitForSelector('[data-testid="copilot-preview"]');
+const waitPreview = async () => {
+  await page.waitForSelector('[data-testid="copilot-preview"]', { visible: true });
+  await page.waitForFunction(() => window.store.getState().copilot.proposal?.shown);
+};
 const hoverActions = async () => {
   await page.hover('[data-testid="copilot-preview"]');
   await page.waitForSelector('#copilot-suggestion-actions', { visible: true });
@@ -188,17 +184,27 @@ test('real gateway validates EN/KO preview, Tab acceptance, one undo and Esc fee
   ).toBe(true);
   const output = path.resolve('../artifacts/phase-l-ui');
   fs.mkdirSync(output, { recursive: true });
-  await page.screenshot({ path: path.join(output, 'english-preview.png') });
+  await page.screenshot({
+    path: path.join(output, 'english-preview.png'),
+    captureBeyondViewport: false,
+  });
   const clip = await page.$eval('#item-b', (node) => {
     const paragraph = node.parentElement?.parentElement;
     if (!paragraph) throw new Error('Missing paragraph.');
     const rect = paragraph.getBoundingClientRect();
     return { x: rect.x, y: rect.y - 8, width: rect.width, height: rect.height + 16 };
   });
-  await page.screenshot({ path: path.join(output, 'compact-preview.png'), clip });
+  await page.screenshot({
+    path: path.join(output, 'compact-preview.png'),
+    clip,
+    captureBeyondViewport: false,
+  });
   await hoverActions();
   expect(await nextWordPosition()).toEqual(positionBeforeHover);
-  await page.screenshot({ path: path.join(output, 'english-hover-preview.png') });
+  await page.screenshot({
+    path: path.join(output, 'english-hover-preview.png'),
+    captureBeyondViewport: false,
+  });
   await page.mouse.move(0, 0);
   await page.waitForSelector('#copilot-suggestion-actions', { hidden: true });
   await page.keyboard.press('Tab');
@@ -226,7 +232,10 @@ test('real gateway validates EN/KO preview, Tab acceptance, one undo and Esc fee
   expect(await page.$eval('[data-testid="copilot-preview"]', (node) => node.textContent)).toContain(
     '데이터'
   );
-  await page.screenshot({ path: path.join(output, 'korean-preview.png') });
+  await page.screenshot({
+    path: path.join(output, 'korean-preview.png'),
+    captureBeyondViewport: false,
+  });
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => !document.querySelector('[data-testid="copilot-preview"]'));
   expect(await content()).toEqual(korean);
@@ -383,7 +392,10 @@ test('audio and caption previews mark only the changed content and remain usable
       );
       expect(await page.$eval('#item-gap-tail', (node) => node.closest('del'))).toBeNull();
     }
-    await page.screenshot({ path: path.resolve(`../artifacts/phase-l-ui/${id}-preview.png`) });
+    await page.screenshot({
+      path: path.resolve(`../artifacts/phase-l-ui/${id}-preview.png`),
+      captureBeyondViewport: false,
+    });
     await hoverActions();
     await page.click('[aria-label="Dismiss suggestion"]');
     expect(await content()).toEqual(original);
@@ -399,6 +411,7 @@ test('audio and caption previews mark only the changed content and remain usable
     await waitPreview();
     await page.screenshot({
       path: path.resolve('../artifacts/phase-l-ui/narrow-light-preview.png'),
+      captureBeyondViewport: false,
     });
     await page.focus('[data-testid="copilot-preview"]');
     await page.waitForSelector('#copilot-suggestion-actions', { visible: true });
@@ -418,6 +431,7 @@ test('audio and caption previews mark only the changed content and remain usable
     expect(bounds.menuLeft).toBeGreaterThanOrEqual(0);
     await page.screenshot({
       path: path.resolve('../artifacts/phase-l-ui/narrow-light-focused-preview.png'),
+      captureBeyondViewport: false,
     });
     await page.keyboard.press('ArrowDown');
     expect(await page.evaluate(() => document.activeElement?.getAttribute('aria-label'))).toBe(

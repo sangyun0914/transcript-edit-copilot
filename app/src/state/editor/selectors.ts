@@ -272,7 +272,7 @@ export function renderItems(
   let current_speaker: string | null = null;
   for (const item of timedContent) {
     if (item.type == 'paragraph_start') {
-      current_speaker = item.speaker;
+      current_speaker = item.speaker ?? '';
     } else if (item.type == 'paragraph_end') {
       // we don't case about para end
     } else if (
