@@ -6,10 +6,24 @@ import hashlib
 import json
 import math
 import struct
+from functools import lru_cache
 from pathlib import Path
 
 
+@lru_cache(maxsize=1024)
+def _key_order(key):
+    return key.encode("utf-16-be")
+
+
 def canonical(value):
+    if isinstance(value, str):
+        return json.encoder.encode_basestring(value)
+    if value is None:
+        return "null"
+    if value is True:
+        return "true"
+    if value is False:
+        return "false"
     if isinstance(value, (int, float)) and not isinstance(value, bool):
         if not math.isfinite(value):
             raise ValueError("Session numbers must be finite.")
@@ -17,7 +31,7 @@ def canonical(value):
     if isinstance(value, list):
         return "[" + ",".join(canonical(item) for item in value) + "]"
     if isinstance(value, dict):
-        keys = sorted(value, key=lambda key: key.encode("utf-16-be"))
+        keys = sorted(value, key=_key_order)
         return (
             "{"
             + ",".join(canonical(key) + ":" + canonical(value[key]) for key in keys)

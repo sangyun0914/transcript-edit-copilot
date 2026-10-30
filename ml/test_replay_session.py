@@ -1,8 +1,9 @@
 import copy
+import json
 import unittest
 from pathlib import Path
 
-from replay_session import read_events, replay
+from replay_session import canonical, read_events, replay
 
 
 class ReplayTests(unittest.TestCase):
@@ -27,6 +28,29 @@ class ReplayTests(unittest.TestCase):
         )
         _, prefix = replay(self.events[:-1])
         self.assertFalse(prefix["complete"])
+
+    def test_canonical_keeps_json_escaping_literals_and_javascript_key_order(self):
+        for value in (
+            "",
+            'quote" slash\\ control\b\n\t\x00',
+            "한글 🙂 é\u2028",
+            None,
+            True,
+            False,
+        ):
+            with self.subTest(value=value):
+                self.assertEqual(
+                    canonical(value),
+                    json.dumps(value, ensure_ascii=False, separators=(",", ":")),
+                )
+        self.assertEqual(
+            canonical({"\ue000": None, "𐀀": True}), '{"𐀀":true,"\ue000":null}'
+        )
+        self.assertEqual(canonical(-0.0), canonical(0))
+        self.assertNotEqual(canonical(True), canonical(1))
+        for value in (float("inf"), float("nan")):
+            with self.assertRaises(ValueError):
+                canonical(value)
 
     def test_corrupt_before_image_missing_events_and_post_end_are_rejected(self):
         changed = copy.deepcopy(self.events)
