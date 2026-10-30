@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -66,6 +67,46 @@ def configuration(phase="smoke"):
 
 
 class BindingTests(unittest.TestCase):
+    def test_minimized_targets_preserve_all_205_native_modules_only(self):
+        try:
+            from peft.tuners.tuners_utils import _find_minimal_target_modules
+        except ImportError as error:
+            raise unittest.SkipTest(
+                "Use the pinned PEFT CPU test environment."
+            ) from error
+
+        targets = trainer.gemma.target_names()
+        other = {
+            "model.vision_tower.layers.0.self_attn.q_proj",
+            "model.audio_tower.layers.0.self_attn.q_proj",
+            "model.language_model.layers.0.mlp.experts.gate_up_proj",
+            "model.language_model.layers.0.mlp.experts.down_proj",
+            "lm_head",
+        }
+        names = set(targets) | other
+        minimized = _find_minimal_target_modules(targets, other)
+        self.assertEqual(len(targets), 205)
+        self.assertLess(len(minimized), len(targets))
+        for representation in (targets, minimized):
+            trainer.validate_adapter_targets(
+                SimpleNamespace(target_modules=representation), targets, names
+            )
+        for representation, inventory in (
+            (targets[:-1], names),
+            ([*targets, "lm_head"], names),
+            ([*minimized, "q_proj"], names),
+            (minimized, names - {targets[0]}),
+        ):
+            with (
+                self.subTest(targets=representation),
+                self.assertRaisesRegex(
+                    ValueError, "exact configured native module set"
+                ),
+            ):
+                trainer.validate_adapter_targets(
+                    SimpleNamespace(target_modules=representation), targets, inventory
+                )
+
     def test_only_explicit_fixed_anchor_continuation_and_phase_budget_are_valid(self):
         for phase in ("smoke", "substantive"):
             config = configuration(phase)
@@ -375,6 +416,55 @@ class TinyContinuationTests(unittest.TestCase):
         self.assertEqual(
             {int(state["step"].item()) for state in actual.state.values()}, {11}
         )
+
+    def test_all_205_targets_reload_from_equivalent_suffix_metadata(self):
+        from peft import get_peft_model_state_dict
+        from peft.tuners.tuners_utils import _find_minimal_target_modules
+
+        torch = self.torch
+        tiny = self.model().config
+        tiny.text_config.num_hidden_layers = 30
+        tiny.text_config.layer_types = (
+            ["sliding_attention"] * 5 + ["full_attention"]
+        ) * 5
+        base = self.Model(tiny).to(dtype=torch.bfloat16)
+        config = configuration()
+        targets = {
+            name: module
+            for name, module in base.named_modules()
+            if trainer.gemma.MODULE_PATTERN.fullmatch(name)
+        }
+        self.assertEqual(set(targets), set(trainer.gemma.target_names()))
+        config["model"]["expected_trainable_parameters"] = sum(
+            2 * (module.in_features + module.out_features)
+            for module in targets.values()
+        )
+        config["training"].update(rank=2, alpha=2)
+        names = {name for name, _ in base.named_modules()}
+        suffixes = _find_minimal_target_modules(set(targets), names - set(targets))
+        self.assertNotEqual(suffixes, set(targets))
+        model, _ = trainer.gemma.enable_training(base, config, torch)
+        expected = trainer.smoke.tensor_records(
+            get_peft_model_state_dict(model, save_embedding_layers=False), torch
+        )
+        self.assertEqual(len(expected), 410)
+        with tempfile.TemporaryDirectory() as temporary:
+            model.save_pretrained(temporary, save_embedding_layers=False)
+            adapter_path = Path(temporary) / "adapter_config.json"
+            adapter = trainer.smoke.read(adapter_path)
+            adapter["target_modules"] = sorted(suffixes)
+            trainer.smoke.write(adapter_path, adapter)
+            reloaded, trainable, actual = trainer.load_adapter(
+                self.Model(tiny).to(dtype=torch.bfloat16),
+                temporary,
+                expected,
+                config,
+                torch,
+                False,
+            )
+            self.assertEqual(actual, expected)
+            self.assertFalse(trainable)
+            self.assertFalse(reloaded.training)
 
     def test_real_saved_anchor_warmstart_fresh_optimizer_and_independent_reload(self):
         torch = self.torch

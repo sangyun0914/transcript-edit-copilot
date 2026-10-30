@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import time
+from types import SimpleNamespace
 
 import prepare_passive_actions_training as preparation
 import train_passive_gemma as gemma
@@ -578,6 +579,20 @@ def preflight(config_path):
     return config, root, bundle, rows, diagnostics, anchor_dir, anchor_tensors, summary
 
 
+def validate_adapter_targets(adapter, configured, module_names):
+    from peft.tuners.tuners_utils import check_target_module_exists
+
+    expected = set(configured)
+    resolved = [
+        {name for name in module_names if check_target_module_exists(settings, name)}
+        for settings in (SimpleNamespace(target_modules=configured), adapter)
+    ]
+    require(
+        resolved[0] == resolved[1] == expected,
+        "Loaded adapter must resolve to the exact configured native module set.",
+    )
+
+
 def load_adapter(model, adapter_dir, expected, config, torch, training):
     from peft import PeftModel, get_peft_model_state_dict
 
@@ -585,6 +600,7 @@ def load_adapter(model, adapter_dir, expected, config, torch, training):
         not isinstance(model, PeftModel) and not hasattr(model, "peft_config"),
         "Load exactly one adapter on the original unmerged native base.",
     )
+    native_module_names = [name for name, _ in model.named_modules()]
     model.requires_grad_(False)
     model = PeftModel.from_pretrained(
         model,
@@ -616,9 +632,11 @@ def load_adapter(model, adapter_dir, expected, config, torch, training):
         adapter.r == config["training"]["rank"]
         and adapter.lora_alpha == config["training"]["alpha"]
         and adapter.lora_dropout == 0
-        and adapter.bias == "none"
-        and set(adapter.target_modules) == set(config["model"]["target_modules"]),
+        and adapter.bias == "none",
         "Loaded adapter configuration differs from the fixed training recipe.",
+    )
+    validate_adapter_targets(
+        adapter, config["model"]["target_modules"], native_module_names
     )
     trainable = {
         name: p.numel() for name, p in model.named_parameters() if p.requires_grad

@@ -336,6 +336,8 @@ def train_draws(
     on_row,
     on_update,
     deadline=lambda: None,
+    *,
+    start_offset=0,
 ):
     accumulation = training["gradient_accumulation"]
     smoke.require(
@@ -343,9 +345,18 @@ def train_draws(
         and math.ceil(len(rows) / accumulation) == training["max_updates"],
         "Draw/update budget mismatch.",
     )
+    smoke.require(
+        type(start_offset) is int
+        and 0 <= start_offset <= len(rows)
+        and (start_offset % accumulation == 0 or start_offset == len(rows))
+        and exposure.updates == math.ceil(start_offset / accumulation)
+        and not exposure.optimizer_commit_uncertain
+        and all(exposure.phases[phase]["rows"] == start_offset for phase in PHASES),
+        "Resume requires an exact completed optimizer boundary and matching exposure.",
+    )
     parameters = [p for p in model.parameters() if p.requires_grad]
     optimizer.zero_grad(set_to_none=True)
-    for offset in range(0, len(rows), accumulation):
+    for offset in range(start_offset, len(rows), accumulation):
         group = rows[offset : offset + accumulation]
         losses = []
         for row in group:
