@@ -12,6 +12,8 @@ repos:
       - id: check-yaml
       - id: debug-statements
       - id: end-of-file-fixer
+        # This research source is bound by completed experiment receipts.
+        exclude: ^ml/train_gemma_actions_v3_dpo_supplemented\.py$
       - id: trailing-whitespace
 
   # python checks
@@ -21,6 +23,8 @@ repos:
       - id: ruff
         args: [--fix]
       - id: ruff-format
+        # Preserve research source hashes used by frozen experiment/deployment receipts.
+        exclude: ^(ml/(?!test_).*\.py|server/scripts/run_local_copilot_actions_v3\.py)$
 
   # js/ts checks
   - repo: local
