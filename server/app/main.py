@@ -62,7 +62,17 @@ app.include_router(create_copilot_router(token_auth))
 
 @app.on_event("startup")
 def startup_event():
+    start_model = getattr(app.state.copilot.adapter, "start", None)
+    if start_model is not None:
+        start_model()
     print(json.dumps({"msg": "server_started", "token": AUTH_TOKEN}), flush=True)
+
+
+@app.on_event("shutdown")
+def shutdown_event():
+    stop_model = getattr(app.state.copilot.adapter, "stop", None)
+    if stop_model is not None:
+        stop_model()
 
 
 @app.post("/tasks/start_transcription/")

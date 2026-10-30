@@ -1,6 +1,7 @@
 """Authenticated, opt-in local gateway for the shared passive NEP contract."""
 
 import asyncio
+import copy
 import hashlib
 import importlib
 import ipaddress
@@ -10,15 +11,21 @@ import os
 import sys
 import time
 from collections import OrderedDict
+from contextlib import contextmanager, nullcontext
+from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
+from threading import RLock
 from typing import Literal
 from urllib.parse import urlsplit
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import Response
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from .copilot_store import CopilotEvidenceStore, EvidenceError, evidence_hash
 
 CONTRACT_VERSION = "passive-nep-v1"
 CONTRACT_MODULES = {
@@ -44,6 +51,7 @@ CONTRACT_ACTIONS = {
     ),
 }
 ROOT = Path(__file__).resolve().parents[2]
+_tokenization_client = ContextVar("copilot_tokenization_client", default=None)
 
 
 def contract(version=CONTRACT_VERSION):
@@ -77,9 +85,33 @@ class PredictRequest(StrictModel):
     focus_uuid: str = Field(min_length=1)
     selection: list[str] = Field(default_factory=list)
     sequence: int = Field(ge=0)
-    history: list[dict] = Field(default_factory=list, max_length=128)
+    history: list[dict] = Field(default_factory=list, max_length=512)
+    history_transport: Literal["incremental"] | None = None
+    request_transport: Literal["sequenced-v1"] | None = None
+    history_base: str | None = Field(default=None, min_length=1, max_length=256)
     trigger: Literal["automatic", "explicit"]
     deadline_ms: int = Field(default=30000, ge=100, le=120000)
+    origin: Literal["human", "ai_computer_use", "synthetic"] | None = None
+    observed_at: str | None = Field(default=None, max_length=64)
+
+    @model_validator(mode="after")
+    def history_transport_limits(self):
+        if self.history_transport is None and (
+            self.history_base is not None or len(self.history) > 128
+        ):
+            raise ValueError("Legacy requests require full history with at most 128 transitions.")
+        if self.request_transport is not None:
+            identity, separator, sequence = self.request.request_id.rpartition(":")
+            if (
+                self.history_transport != "incremental"
+                or not separator
+                or sequence != str(self.sequence)
+                or str(UUID(identity, version=4)) != identity
+            ):
+                raise ValueError(
+                    "Sequenced requests require incremental history and a UUIDv4:sequence identity."
+                )
+        return self
 
 
 class FeedbackRequest(StrictModel):
@@ -92,15 +124,24 @@ class FeedbackRequest(StrictModel):
     origin: Literal["human", "ai_computer_use", "synthetic"] = "human"
     reason: Literal["unspecified", "timing", "target", "parameter", "preference"] = "unspecified"
     transition: dict | None = None
+    event_id: str | None = Field(default=None, min_length=1, max_length=256)
+    request: RequestIdentity | None = None
+    revision: int | None = Field(default=None, ge=0)
+    interaction_epoch: int | None = Field(default=None, ge=0)
+    observed_at: str | None = Field(default=None, max_length=64)
 
 
 class LocalConfig(StrictModel):
-    version: Literal[1] = 1
+    version: Literal[1, 2] = 1
     contract_version: Literal["passive-nep-v1", "passive-nep-actions-v1"] = CONTRACT_VERSION
     endpoint: str
     model_id: str = Field(min_length=1)
     model_path: str
     model_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    adapter_path: str | None = None
+    adapter_sha256: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
+    adapter_scale: Literal[1.0] = 1.0
+    output_format: Literal["json", "rewrite"] = "json"
     chat_template_path: str
     chat_template_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     runtime_build: str = Field(min_length=1)
@@ -111,6 +152,12 @@ class LocalConfig(StrictModel):
 
     @model_validator(mode="after")
     def local_only(self):
+        if (self.adapter_path is None) != (self.adapter_sha256 is None):
+            raise ValueError("A local LoRA requires both its path and hash.")
+        if self.version == 1 and (self.adapter_path is not None or self.output_format != "json"):
+            raise ValueError("LoRA and Rewrite require an explicitly versioned v2 deployment.")
+        if self.version == 2 and self.contract_version != "passive-nep-actions-v1":
+            raise ValueError("The v2 deployment uses the shared seven-action contract.")
         if (self.token_parity_path is None) != (self.token_parity_sha256 is None):
             raise ValueError("A native-token parity receipt requires both its path and hash.")
         url = urlsplit(self.endpoint)
@@ -211,6 +258,7 @@ class LocalLlamaAdapter:
     def __init__(self, config):
         self.config = config
         self.contract_version = config.contract_version
+        self.output_format = config.output_format
         self.model = {
             "id": config.model_id,
             "sha256": config.model_sha256,
@@ -220,8 +268,16 @@ class LocalLlamaAdapter:
             "contract_version": self.contract_version,
             "cache_prompt": config.cache_prompt,
         }
+        if config.version == 2:
+            self.model.update(
+                adapter_sha256=config.adapter_sha256,
+                adapter_scale=config.adapter_scale if config.adapter_path else None,
+                output_format=config.output_format,
+                model_layout="separate_gguf_base_and_lora" if config.adapter_path else "gguf_base",
+            )
         self._verified_files = None
         self._verified_parity = None
+        self._native_count_supported = None
 
     def _client(self):
         return httpx.Client(
@@ -238,24 +294,65 @@ class LocalLlamaAdapter:
 
     def _verify_files(self):
         model, template = Path(self.config.model_path), Path(self.config.chat_template_path)
+        files = [(model, self.config.model_sha256), (template, self.config.chat_template_sha256)]
+        if self.config.adapter_path:
+            files.append((Path(self.config.adapter_path), self.config.adapter_sha256))
         signature = tuple(
-            (str(p.resolve()), p.stat().st_size, p.stat().st_mtime_ns) for p in (model, template)
+            (str(p.resolve()), p.stat().st_size, p.stat().st_mtime_ns) for p, _ in files
         )
         if signature != self._verified_files:
-            for path, expected in (
-                (model, self.config.model_sha256),
-                (template, self.config.chat_template_sha256),
-            ):
+            for path, expected in files:
                 with path.open("rb") as stream:
                     if hashlib.file_digest(stream, "sha256").hexdigest() != expected:
-                        raise ValueError("Configured local model or native template hash differs.")
+                        raise ValueError(
+                            "Configured local model, adapter or native template hash differs."
+                        )
             self._verified_files = signature
+
+    def _verify_loaded_adapter(self, value):
+        if self.config.version != 2:
+            return
+        if self.config.adapter_path is None:
+            if value != []:
+                raise ValueError("The configured native base has an unexpected loaded LoRA.")
+            return
+        if (
+            not isinstance(value, list)
+            or len(value) != 1
+            or value[0].get("id") != 0
+            or Path(value[0].get("path", "")).resolve() != Path(self.config.adapter_path).resolve()
+            or value[0].get("scale") != self.config.adapter_scale
+            or value[0].get("alora_invocation_tokens")
+        ):
+            raise ValueError(
+                "Runtime did not load exactly the hash-bound ordinary LoRA at scale 1."
+            )
+
+    def request_messages(self, snapshot):
+        if self.config.version == 2:
+            contract(self.contract_version)
+            return importlib.import_module("passive_formats_actions_v3").messages(
+                snapshot, self.output_format
+            )
+        return contract(self.contract_version).canonical_messages(snapshot)
+
+    def _model_messages(self, messages):
+        if self.config.version != 2:
+            return messages
+        module = contract(self.contract_version)
+        snapshot = module.parse_snapshot(json.loads(messages[1]["content"]))
+        expected = self.request_messages(snapshot)
+        if messages not in (expected, module.canonical_messages(snapshot)):
+            raise ValueError("Runtime messages differ from the configured visible input format.")
+        return expected
 
     def health(self):
         self._verify_files()
         with self._client() as client:
             self._json(client, "GET", "/health")
             props = self._json(client, "GET", "/props")
+            if self.config.version == 2:
+                self._verify_loaded_adapter(self._json(client, "GET", "/lora-adapters"))
         settings = props.get("default_generation_settings", {})
         native_template = Path(self.config.chat_template_path).read_text()
         reported_template = props.get("chat_template")
@@ -297,7 +394,7 @@ class LocalLlamaAdapter:
         if any(
             receipt.get(key) != value
             for key, value in {
-                "version": 1,
+                "version": self.config.version,
                 "model_sha256": self.config.model_sha256,
                 "chat_template_sha256": self.config.chat_template_sha256,
                 "runtime_build": self.config.runtime_build,
@@ -307,6 +404,15 @@ class LocalLlamaAdapter:
             raise ValueError("Native-token parity receipt belongs to another deployment.")
         if receipt.get("contract_version", CONTRACT_VERSION) != self.contract_version:
             raise ValueError("Native-token parity receipt belongs to another contract.")
+        if self.config.version == 2 and any(
+            receipt.get(key) != value
+            for key, value in {
+                "adapter_sha256": self.config.adapter_sha256,
+                "adapter_scale": self.config.adapter_scale if self.config.adapter_path else None,
+                "output_format": self.output_format,
+            }.items()
+        ):
+            raise ValueError("Native-token parity receipt belongs to another adapter or format.")
         module = contract(self.contract_version)
         checks = receipt.get("checks", [])
         if not isinstance(checks, list) or not 2 <= len(checks) <= 16:
@@ -315,7 +421,7 @@ class LocalLlamaAdapter:
         for check in checks:
             messages = check["messages"]
             value = module.parse_snapshot(json.loads(messages[1]["content"]))
-            if module.canonical_messages(value) != messages:
+            if self.request_messages(value) != messages:
                 raise ValueError("Parity messages differ from the shared passive prompt.")
             expected = check["expected_native_token_ids"]
             if (
@@ -339,7 +445,30 @@ class LocalLlamaAdapter:
         self.model["training_token_parity"] = "verified_fixed_bilingual_checks"
         self.model["token_parity_sha256"] = digest
 
-    def apply_chat_template(self, messages, **kwargs):
+    @contextmanager
+    def tokenization_session(self):
+        current = _tokenization_client.get()
+        if current is not None and current[0] is self:
+            yield
+            return
+        state = [self, None]
+        token = _tokenization_client.set(state)
+        try:
+            yield
+        finally:
+            if state[1] is not None:
+                state[1].close()
+            _tokenization_client.reset(token)
+
+    def _tokenizer_client(self):
+        current = _tokenization_client.get()
+        if current is None or current[0] is not self:
+            return self._client()
+        if current[1] is None:
+            current[1] = self._client()
+        return nullcontext(current[1])
+
+    def _tokenizer_messages(self, messages, kwargs):
         if kwargs != {
             "tokenize": True,
             "return_dict": False,
@@ -347,7 +476,11 @@ class LocalLlamaAdapter:
             "enable_thinking": False,
         }:
             raise ValueError("Unsupported passive tokenization options.")
-        with self._client() as client:
+        return self._model_messages(messages)
+
+    def apply_chat_template(self, messages, **kwargs):
+        messages = self._tokenizer_messages(messages, kwargs)
+        with self._tokenizer_client() as client:
             rendered = self._json(
                 client,
                 "POST",
@@ -374,7 +507,39 @@ class LocalLlamaAdapter:
             raise ValueError("Local tokenizer returned invalid token IDs.")
         return tokens
 
+    def count_chat_template_tokens(self, messages, **kwargs):
+        model_messages = self._tokenizer_messages(messages, kwargs)
+        if self._native_count_supported is False:
+            return len(self.apply_chat_template(messages, **kwargs))
+        with self._tokenizer_client() as client:
+            try:
+                result = self._json(
+                    client,
+                    "POST",
+                    "/v1/chat/completions/input_tokens",
+                    json={
+                        "model": self.config.model_id,
+                        "messages": model_messages,
+                        "chat_template_kwargs": {"enable_thinking": False},
+                    },
+                )
+            except httpx.HTTPStatusError as error:
+                if error.response.status_code not in (404, 405):
+                    raise
+                self._native_count_supported = False
+                return len(self.apply_chat_template(messages, **kwargs))
+        count = result.get("input_tokens") if isinstance(result, dict) else None
+        if type(count) is not int or count < 0:
+            raise ValueError("Local tokenizer returned an invalid native token count.")
+        self._native_count_supported = True
+        return count
+
     async def generate(self, messages, output_schema, timeout):
+        messages = self._model_messages(messages)
+        if self.output_format == "rewrite":
+            output_schema = importlib.import_module(
+                "passive_formats_actions_v3"
+            ).Rewrite.model_json_schema()
         body = {
             "model": self.config.model_id,
             "messages": messages,
@@ -399,6 +564,10 @@ class LocalLlamaAdapter:
                 },
             },
         }
+        if self.config.version == 2:
+            body["lora"] = (
+                [{"id": 0, "scale": self.config.adapter_scale}] if self.config.adapter_path else []
+            )
         if self.config.capture_runtime_evidence:
             body.update(verbose=True, return_tokens=True)
         started = time.perf_counter()
@@ -408,6 +577,10 @@ class LocalLlamaAdapter:
             trust_env=False,
             follow_redirects=False,
         ) as client:
+            if self.config.version == 2:
+                loaded = await client.get("/lora-adapters")
+                loaded.raise_for_status()
+                self._verify_loaded_adapter(loaded.json())
             response = await client.post("/v1/chat/completions", json=body)
             response.raise_for_status()
             result = response.json()
@@ -433,7 +606,9 @@ class LocalLlamaAdapter:
 def adapter_from_environment():
     path = os.environ.get("AUDAPOLIS_NEP_CONFIG")
     if not path:
-        return DisabledAdapter()
+        from .copilot_runtime import default_adapter
+
+        return default_adapter()
     try:
         return LocalLlamaAdapter(LocalConfig.model_validate(json.loads(Path(path).read_text())))
     except (ValueError, OSError):
@@ -449,28 +624,139 @@ class ActiveRequest:
 
 
 class RequestTokenizer:
-    def __init__(self, adapter, cancelled):
+    def __init__(self, adapter, cancelled, cache=None):
         self.adapter, self.cancelled = adapter, cancelled
+        self.cache = cache
+
+    def check_cancelled(self):
+        if self.cancelled.is_set():
+            raise ValueError("Prediction preparation was cancelled.")
 
     def apply_chat_template(self, *args, **kwargs):
-        if self.cancelled.is_set():
-            raise ValueError("Prediction preparation was cancelled.")
-        result = self.adapter.apply_chat_template(*args, **kwargs)
-        if self.cancelled.is_set():
-            raise ValueError("Prediction preparation was cancelled.")
+        self.check_cancelled()
+        if self.cache is None:
+            result = self.adapter.apply_chat_template(*args, **kwargs)
+        else:
+            values, lock = self.cache
+            key = evidence_hash([self.adapter.model, args, kwargs])
+            with lock:
+                result = values.get(key)
+                if result is not None:
+                    values.move_to_end(key)
+            if result is None:
+                result = self.adapter.apply_chat_template(*args, **kwargs)
+                self.check_cancelled()
+                with lock:
+                    values[key] = tuple(result)
+                    values.move_to_end(key)
+                    while len(values) > 128:
+                        values.popitem(last=False)
+            result = list(result)
+        self.check_cancelled()
+        return result
+
+    def count_chat_template_tokens(self, *args, **kwargs):
+        count = getattr(self.adapter, "count_chat_template_tokens", None)
+        if count is None:
+            return len(self.apply_chat_template(*args, **kwargs))
+        self.check_cancelled()
+        if self.cache is None:
+            result = count(*args, **kwargs)
+        else:
+            values, lock = self.cache
+            key = evidence_hash(["count", self.adapter.model, args, kwargs])
+            with lock:
+                result = values.get(key)
+                if result is not None:
+                    values.move_to_end(key)
+            if result is None:
+                result = count(*args, **kwargs)
+                self.check_cancelled()
+                if type(result) is not int or result < 0:
+                    raise ValueError("Native tokenizer returned an invalid token count.")
+                with lock:
+                    values[key] = result
+                    values.move_to_end(key)
+                    while len(values) > 128:
+                        values.popitem(last=False)
+        self.check_cancelled()
         return result
 
 
 class CopilotService:
-    def __init__(self, adapter=None):
+    def __init__(self, adapter=None, feedback_directory=None):
         self.adapter = adapter if adapter is not None else adapter_from_environment()
         self.sessions = OrderedDict()
         self.latest = {}
         self.used_requests = set()
+        self.request_sequences = {}
         self.active = None
+        self.evidence = CopilotEvidenceStore(feedback_directory)
+        self.journals = {}
+        self.process_id = str(uuid4())
+        self.storage_errors = {}
+        self.tokenizer_cache = (OrderedDict(), RLock())
+
+    @staticmethod
+    def _journal_entry(event):
+        value = {key: event[key] for key in ("kind", "event_hash", "seq", "document_id")}
+        if event["kind"] == "prediction_completed":
+            value.update(
+                request=copy.deepcopy(event["request"]),
+                prepared_event_hash=event["prepared_event_hash"],
+                response={"proposal_id": event["response"]["proposal_id"]},
+            )
+        elif event["kind"] == "feedback":
+            value.update(
+                feedback={
+                    key: event["feedback"].get(key)
+                    for key in ("event_id", "proposal_id", "outcome")
+                },
+                feedback_hash=event.get("feedback_hash") or evidence_hash(event["feedback"]),
+            )
+        return value
+
+    def _append(self, document_id, **fields):
+        if document_id in self.storage_errors:
+            raise GatewayError(503, "feedback_storage", self.storage_errors[document_id])
+        records = self.journals[document_id]
+        if document_id in self.request_sequences or fields.get("request_transport"):
+            fields = {**fields, "capture_mode": "product-compact-v1"}
+            if "response" in fields:
+                fields["response"] = {
+                    key: value
+                    for key, value in fields["response"].items()
+                    if key != "result_document"
+                }
+            if "feedback" in fields:
+                fields["feedback_hash"] = evidence_hash(fields["feedback"])
+                fields["feedback"] = {
+                    **fields["feedback"],
+                    "transition": fields["ledger_record"]["transition"],
+                }
+        try:
+            record = self.evidence.append(
+                document_id,
+                copy.deepcopy({"process_id": self.process_id, **fields}),
+                records[-1]["event_hash"] if records else None,
+            )
+        except EvidenceError as error:
+            self.storage_errors[document_id] = str(error)
+            raise GatewayError(503, "feedback_storage", str(error)) from error
+        records.append(self._journal_entry(record))
+        return record
 
     def _contract(self):
         return contract(getattr(self.adapter, "contract_version", CONTRACT_VERSION))
+
+    def _model_identity(self):
+        model = copy.deepcopy(self.adapter.model)
+        if isinstance(model, dict):
+            model.pop("training_token_parity", None)
+            config = getattr(self.adapter, "config", None)
+            if config is not None:
+                model["token_parity_sha256"] = config.token_parity_sha256
+        return model
 
     async def health(self):
         try:
@@ -494,7 +780,14 @@ class CopilotService:
             "output_tokens": 512,
             "context_tokens": 4096,
             "experimental": True,
-            "process_lifecycle": "externally_managed",
+            "process_lifecycle": getattr(self.adapter, "process_lifecycle", "externally_managed"),
+            "feedback_storage": {
+                "format": "copilot-feedback-v1",
+                "directory": str(self.evidence.directory),
+                "local_only": True,
+                "sessions_endpoint": "/copilot/feedback/sessions",
+                "export_endpoint": "/copilot/feedback/export",
+            },
         }
 
     def cancel(self, identity):
@@ -505,23 +798,115 @@ class CopilotService:
         return {"request": identity.model_dump(), "cancelled": cancelled}
 
     def _session(self, document_id):
+        if document_id in self.storage_errors:
+            raise GatewayError(503, "feedback_storage", self.storage_errors[document_id])
         if document_id not in self.sessions:
             if len(self.sessions) >= 8:
-                removed, _ = self.sessions.popitem(last=False)
+                removed = next(
+                    key
+                    for key in self.sessions
+                    if self.active is None or self.active.identity.document_id != key
+                )
+                self.sessions.pop(removed)
                 self.latest.pop(removed, None)
+                self.request_sequences.pop(removed, None)
+                self.journals.pop(removed, None)
                 self.used_requests = {key for key in self.used_requests if key[0] != removed}
             module = self._contract()
-            self.sessions[document_id] = module.PassivePredictionSession(
+            session = module.PassivePredictionSession(
                 document_id, module.PassiveContextBuilder(self.adapter)
             )
+            try:
+                records, ledger_records, history_records = [], [], []
+                failed = set()
+                high_water = None
+
+                def restore_event(event):
+                    nonlocal high_water
+                    records.append(self._journal_entry(event))
+                    if event["kind"] == "prediction_requested":
+                        if (
+                            event["contract_version"] != module.VERSION
+                            or event["model_identity"] != self._model_identity()
+                        ):
+                            raise GatewayError(
+                                409,
+                                "session_identity",
+                                "Model or contract changed; start a new copilot session.",
+                            )
+                        identity = RequestIdentity.model_validate(event["request"])
+                        self.latest[document_id] = identity
+                        if event.get("request_transport") == "sequenced-v1":
+                            if high_water is not None and event["sequence"] <= high_water:
+                                raise ValueError("Durable request sequence moved backwards.")
+                            high_water = event["sequence"]
+                        elif high_water is not None:
+                            raise ValueError("A sequenced session changed transport.")
+                        else:
+                            self.used_requests.add((document_id, identity.request_id))
+                    if event["kind"] == "prediction_failed":
+                        failed.add(event["request"]["request_id"])
+                    completed = (
+                        event["request"]["request_id"]
+                        if event["kind"] == "prediction_completed"
+                        else None
+                    )
+                    if event.get("ledger_record") is not None:
+                        ledger_records.append((completed, event["ledger_record"]))
+                    if event.get("history_record") is not None:
+                        history_records.append((completed, event["history_record"]))
+
+                self.evidence.scan(document_id, restore_event)
+                if high_water is not None:
+                    session.enable_compact_runtime()
+                    for request_id, value in ledger_records:
+                        if request_id not in failed:
+                            session.feedback.restore_record(value)
+                    for request_id, value in history_records:
+                        if request_id not in failed:
+                            session._history_state = session._history_state.restore_receipt(value)
+                            session._history_persisted = True
+                    self.request_sequences[document_id] = high_water
+                else:
+                    session.feedback = module.PassiveFeedbackLedger.restore(
+                        {
+                            "contract_version": module.VERSION,
+                            "document_id": document_id,
+                            "records": [
+                                value
+                                for request_id, value in ledger_records
+                                if request_id not in failed
+                            ],
+                        }
+                    )
+            except (EvidenceError, ValueError, KeyError, TypeError) as error:
+                raise GatewayError(503, "feedback_storage", str(error)) from error
+            self.sessions[document_id] = session
+            self.journals[document_id] = records
         self.sessions.move_to_end(document_id)
         return self.sessions[document_id]
 
     async def predict(self, body, disconnected=None):
+        started = time.perf_counter()
         identity = body.request
         key = (identity.document_id, identity.request_id)
         if self.active is not None:
             raise GatewayError(409, "busy", "A local prediction is already active.")
+        try:
+            self._session(identity.document_id)
+        except ImportError as error:
+            raise GatewayError(
+                503, "unavailable", "Shared NEP contract requires the source checkout."
+            ) from error
+        sequenced = body.request_transport == "sequenced-v1"
+        if identity.document_id in self.request_sequences and not sequenced:
+            raise GatewayError(
+                409, "request_transport", "This session requires sequenced requests."
+            )
+        if sequenced and not hasattr(self.sessions[identity.document_id], "enable_compact_runtime"):
+            raise GatewayError(422, "request_transport", "This contract has no sequenced runtime.")
+        if sequenced and body.sequence <= self.request_sequences.get(identity.document_id, -1):
+            raise GatewayError(409, "request_replay", "This request sequence was already consumed.")
         if key in self.used_requests:
             raise GatewayError(409, "duplicate", "This prediction request was already used.")
         previous = self.latest.get(identity.document_id)
@@ -530,17 +915,45 @@ class CopilotService:
             or identity.interaction_epoch < previous.interaction_epoch
         ):
             raise GatewayError(409, "stale", "Document or interaction identity moved backwards.")
+        self._append(
+            identity.document_id,
+            kind="prediction_requested",
+            request=identity.model_dump(),
+            sequence=body.sequence,
+            actor=body.origin or "unclassified",
+            contract_version=getattr(self.adapter, "contract_version", CONTRACT_VERSION),
+            model=self.adapter.model,
+            model_identity=self._model_identity(),
+            **({"request_transport": body.request_transport} if sequenced else {}),
+            input_request=body.model_dump(exclude={"document", "history"})
+            if sequenced
+            else body.model_dump(),
+        )
         active = ActiveRequest(identity, asyncio.Event())
         self.active = active
-        self.used_requests.add(key)
+        if sequenced:
+            self.request_sequences[identity.document_id] = body.sequence
+            self.sessions[identity.document_id].enable_compact_runtime()
+        else:
+            self.used_requests.add(key)
         self.latest[identity.document_id] = identity
-        started = time.perf_counter()
+        session = self.sessions[identity.document_id]
+        previous_feedback = session.feedback
+        previous_history = getattr(session, "_history_state", None)
+        previous_persisted = getattr(session, "_history_persisted", False)
+
+        def rollback():
+            session.feedback = previous_feedback
+            if previous_history is not None:
+                session._history_state = previous_history
+                session._history_persisted = previous_persisted
+
         worker = asyncio.create_task(self._predict(body, active, started))
         monitor = asyncio.create_task(self._wait_cancel(active, disconnected))
         try:
             done, _ = await asyncio.wait(
                 {worker, monitor},
-                timeout=body.deadline_ms / 1000,
+                timeout=max(0, body.deadline_ms / 1000 - (time.perf_counter() - started)),
                 return_when=asyncio.FIRST_COMPLETED,
             )
             if not done:
@@ -549,8 +962,29 @@ class CopilotService:
             if active.cancelled.is_set() or monitor in done:
                 raise GatewayError(409, "cancelled", "Local prediction was cancelled.")
             return await worker
+        except GatewayError as error:
+            rollback()
+            if error.code != "feedback_storage":
+                self._append(
+                    identity.document_id,
+                    kind="prediction_failed",
+                    request=identity.model_dump(),
+                    sequence=body.sequence,
+                    actor=body.origin or "unclassified",
+                    error={"code": error.code, "message": error.message},
+                )
+            raise
         except asyncio.CancelledError:
             active.cancelled.set()
+            rollback()
+            self._append(
+                identity.document_id,
+                kind="prediction_failed",
+                request=identity.model_dump(),
+                sequence=body.sequence,
+                actor=body.origin or "unclassified",
+                error={"code": "cancelled", "message": "Prediction request task was cancelled."},
+            )
             raise
         finally:
             # Cancelling the HTTP task closes the upstream response connection. Preparation
@@ -602,7 +1036,7 @@ class CopilotService:
             events = session.feedback._ledger.events
             if events and body.sequence < events[-1]["sequence"]:
                 raise GatewayError(409, "stale", "Prediction sequence predates recorded feedback.")
-            if (
+            if body.request_transport is None and (
                 len(session.feedback._records) >= 512
                 or sum(
                     document_id == body.request.document_id for document_id, _ in self.used_requests
@@ -611,61 +1045,192 @@ class CopilotService:
             ):
                 raise GatewayError(409, "session_full", "Start a fresh copilot session.")
             document = body.document.model_dump()
-            session.builder = module.PassiveContextBuilder(
-                RequestTokenizer(self.adapter, active.cancelled)
+            tokenizer = RequestTokenizer(self.adapter, active.cancelled, self.tokenizer_cache)
+            session.builder = module.PassiveContextBuilder(tokenizer)
+
+            def prepare():
+                scope = (
+                    session.validation_scope(tokenizer.check_cancelled)
+                    if hasattr(session, "validation_scope")
+                    else nullcontext()
+                )
+                native = (
+                    self.adapter.tokenization_session()
+                    if hasattr(self.adapter, "tokenization_session")
+                    else nullcontext()
+                )
+                with scope, native:
+                    prepare_context = (
+                        session.prepare_incremental
+                        if body.history_transport == "incremental"
+                        and hasattr(session, "prepare_incremental")
+                        else session.prepare
+                    )
+                    if body.history_transport is not None and not hasattr(
+                        session, "prepare_incremental"
+                    ):
+                        raise GatewayError(
+                            422, "invalid", "This contract does not support incremental history."
+                        )
+                    try:
+                        prepared_context = prepare_context(
+                            document,
+                            body.focus_uuid,
+                            as_of=body.sequence,
+                            selection=body.selection,
+                            history=body.history,
+                            **(
+                                {"history_base": body.history_base}
+                                if body.history_transport
+                                else {}
+                            ),
+                        )
+                    except ValueError as error:
+                        if isinstance(error, getattr(module, "HistoryResyncRequired", ())):
+                            raise GatewayError(
+                                409, "history_resync_required", str(error)
+                            ) from error
+                        if isinstance(error, getattr(module, "HistoryLimitError", ())):
+                            raise GatewayError(409, "session_full", str(error)) from error
+                        raise
+                    return prepared_context if body.history_transport else (prepared_context, None)
+
+            bundle, history_candidate = await asyncio.to_thread(prepare)
+            messages = (
+                self.adapter.request_messages(bundle["input"])
+                if hasattr(self.adapter, "request_messages")
+                else module.canonical_messages(bundle["input"])
             )
-            bundle = await asyncio.to_thread(
-                session.prepare,
-                document,
-                body.focus_uuid,
-                as_of=body.sequence,
-                selection=body.selection,
-                history=body.history,
+            output_schema = module.OUTPUT_SCHEMA
+            if getattr(self.adapter, "output_format", "json") == "rewrite":
+                output_schema = importlib.import_module(
+                    "passive_formats_actions_v3"
+                ).Rewrite.model_json_schema()
+            prepared_record = self._append(
+                body.request.document_id,
+                kind="prediction_prepared",
+                request=body.request.model_dump(),
+                sequence=body.sequence,
+                actor=body.origin or "unclassified",
+                model=self.adapter.model,
+                contract_version=module.VERSION,
+                bundle=bundle,
+                messages=messages,
+                messages_hash=evidence_hash(messages),
+                output_schema=output_schema,
+                hash_format="sha256-canonical-json-utf8-v1",
             )
             prepared = time.perf_counter()
             remaining = body.deadline_ms / 1000 - (prepared - started)
             if active.cancelled.is_set() or remaining <= 0:
                 raise GatewayError(409, "cancelled", "Local prediction was cancelled.")
             completion = await self.adapter.generate(
-                module.canonical_messages(bundle["input"]),
-                module.OUTPUT_SCHEMA,
+                messages,
+                output_schema,
                 remaining,
             )
             generated = time.perf_counter()
             if active.cancelled.is_set():
                 raise GatewayError(409, "cancelled", "Local prediction was cancelled.")
-            request = module.Envelope(**body.request.model_dump())
-            current = module.Envelope(**self.latest[body.request.document_id].model_dump())
-            validated = session.validate(
-                completion.text,
-                document,
-                bundle,
-                request,
-                current,
-                completion.finish_reason,
-                body.sequence,
+            self._append(
+                body.request.document_id,
+                kind="prediction_generated",
+                request=body.request.model_dump(),
+                sequence=body.sequence,
+                prepared_event_hash=prepared_record["event_hash"],
+                completion={
+                    "text": completion.text,
+                    "finish_reason": completion.finish_reason,
+                    "timings": completion.timings,
+                    "runtime_evidence": completion.runtime_evidence,
+                },
             )
-            prediction = validated["prediction"]
-            proposal_id, result, result_hash, targets = None, None, None, []
-            status = "suppressed" if validated["suppressed"] else "no_action"
-            if validated["show"]:
-                result = module.apply_passive_edit(document, bundle, prediction)
-                result_hash = module.session_hash(result)
-                targets = [bundle["mapping"][str(alias)]["uuid"] for alias in prediction["target"]]
-                proposal_id = str(uuid4())
+
+            def checkpoint():
+                if active.cancelled.is_set():
+                    raise GatewayError(409, "cancelled", "Local prediction was cancelled.")
                 if (time.perf_counter() - started) * 1000 >= body.deadline_ms:
                     raise GatewayError(504, "deadline", "Local prediction exceeded its deadline.")
-                session.feedback.propose(proposal_id, body.sequence, document, bundle, prediction)
-                if (time.perf_counter() - started) * 1000 >= body.deadline_ms:
-                    # The shared ledger validates synchronously; an over-deadline draft
-                    # must not become a proposal that could later receive feedback.
-                    del session.feedback._ledger.proposals[proposal_id]
-                    session.feedback._records.pop()
-                    raise GatewayError(504, "deadline", "Local prediction exceeded its deadline.")
-                status = "proposal"
-            elif (time.perf_counter() - started) * 1000 >= body.deadline_ms:
-                raise GatewayError(504, "deadline", "Local prediction exceeded its deadline.")
-            return {
+
+            def finish():
+                scope = (
+                    session.validation_scope(checkpoint)
+                    if hasattr(session, "validation_scope")
+                    else nullcontext()
+                )
+                with scope:
+                    checkpoint()
+                    request = module.Envelope(**body.request.model_dump())
+                    current = module.Envelope(**self.latest[body.request.document_id].model_dump())
+                    prediction_text = completion.text
+                    if getattr(self.adapter, "output_format", "json") == "rewrite":
+                        formats = importlib.import_module("passive_formats_actions_v3")
+                        prediction_text = formats.compact(
+                            formats.parse(
+                                completion.text,
+                                bundle["input"],
+                                "rewrite",
+                                envelope=request,
+                                current=current,
+                                finish_reason=completion.finish_reason,
+                            ).model_dump()
+                        )
+                    validated = session.validate(
+                        prediction_text,
+                        document,
+                        bundle,
+                        request,
+                        current,
+                        completion.finish_reason,
+                        body.sequence,
+                    )
+                    checkpoint()
+                    prediction = validated["prediction"]
+                    proposal_id, result, result_hash, targets = None, None, None, []
+                    feedback = session.feedback
+                    ledger_record = None
+                    status = "suppressed" if validated["suppressed"] else "no_action"
+                    if validated["show"]:
+                        feedback = (
+                            session.feedback.fork()
+                            if hasattr(session.feedback, "fork")
+                            else copy.deepcopy(session.feedback)
+                        )
+                        result = module.apply_passive_edit(document, bundle, prediction)
+                        result_hash = module.session_hash(result)
+                        targets = [
+                            bundle["mapping"][str(alias)]["uuid"] for alias in prediction["target"]
+                        ]
+                        proposal_id = str(uuid4())
+                        checkpoint()
+                        feedback.propose(proposal_id, body.sequence, document, bundle, prediction)
+                        checkpoint()
+                        ledger_record = feedback._records[-1]
+                        status = "proposal"
+                    return (
+                        prediction,
+                        proposal_id,
+                        result,
+                        result_hash,
+                        targets,
+                        feedback,
+                        ledger_record,
+                        status,
+                    )
+
+            (
+                prediction,
+                proposal_id,
+                result,
+                result_hash,
+                targets,
+                feedback,
+                ledger_record,
+                status,
+            ) = await asyncio.to_thread(finish)
+            checkpoint()
+            response = {
+                **({"history_tip": history_candidate.tip} if history_candidate is not None else {}),
                 **(
                     {"runtime_evidence": completion.runtime_evidence}
                     if completion.runtime_evidence
@@ -690,6 +1255,43 @@ class CopilotService:
                     "trigger": body.trigger,
                 },
             }
+            saving = time.perf_counter()
+            saved = self._append(
+                body.request.document_id,
+                kind="prediction_completed",
+                request=body.request.model_dump(),
+                sequence=body.sequence,
+                actor=body.origin or "unclassified",
+                prepared_event_hash=prepared_record["event_hash"],
+                response=response,
+                ledger_record=ledger_record,
+                **(
+                    {
+                        "history_record": history_candidate.receipt(
+                            full=not session._history_persisted
+                        )
+                    }
+                    if body.request_transport == "sequenced-v1"
+                    else {}
+                ),
+            )
+            if (time.perf_counter() - started) * 1000 >= body.deadline_ms:
+                raise GatewayError(504, "deadline", "Local prediction exceeded its deadline.")
+            checkpoint()
+            if history_candidate is not None:
+                session.commit_history(history_candidate)
+                if body.request_transport == "sequenced-v1":
+                    session._history_persisted = True
+            session.feedback = feedback
+            return {
+                **response,
+                "timings": {
+                    **response["timings"],
+                    "evidence_write_ms": (time.perf_counter() - saving) * 1000,
+                    "total_ms": (time.perf_counter() - started) * 1000,
+                },
+                "evidence": {"event_hash": saved["event_hash"], "seq": saved["seq"]},
+            }
         except GatewayError as error:
             raise diagnostic(error)
         except httpx.TimeoutException as error:
@@ -704,15 +1306,59 @@ class CopilotService:
             raise diagnostic(GatewayError(422, "invalid", str(error))) from error
 
     def feedback(self, body):
-        session = self.sessions.get(body.document_id)
-        if session is None:
-            raise GatewayError(409, "unknown_session", "This copilot session has expired.")
         if self.active is not None and self.active.identity.document_id == body.document_id:
             raise GatewayError(
                 409, "busy", "Wait for the active prediction before recording feedback."
             )
+        session = self._session(body.document_id)
+        records = self.journals[body.document_id]
+        for event in records:
+            if (
+                body.event_id
+                and event["kind"] == "feedback"
+                and event["feedback"].get("event_id") == body.event_id
+            ):
+                if event["feedback_hash"] != evidence_hash(body.model_dump()):
+                    raise GatewayError(
+                        409,
+                        "feedback_conflict",
+                        "Feedback event identity was reused with different content.",
+                    )
+                try:
+                    self.evidence.confirm(body.document_id, records[-1]["event_hash"])
+                except EvidenceError as error:
+                    self.storage_errors[body.document_id] = str(error)
+                    raise GatewayError(503, "feedback_storage", str(error)) from error
+                return self._feedback_receipt(event)
+        proposal = next(
+            (
+                event
+                for event in records
+                if event["kind"] == "prediction_completed"
+                and event["response"]["proposal_id"] == body.proposal_id
+            ),
+            None,
+        )
+        if proposal is None:
+            raise GatewayError(
+                409, "unknown_proposal", "This proposal has no saved prediction evidence."
+            )
+        if body.request is not None and body.request.model_dump() != proposal["request"]:
+            raise GatewayError(
+                422, "invalid_feedback", "Feedback refers to a different prediction request."
+            )
+        if (body.revision is not None and body.revision < proposal["request"]["revision"]) or (
+            body.interaction_epoch is not None
+            and body.interaction_epoch < proposal["request"]["interaction_epoch"]
+        ):
+            raise GatewayError(422, "invalid_feedback", "Feedback state predates its prediction.")
         try:
-            session.feedback.record(
+            candidate = (
+                session.feedback.fork()
+                if hasattr(session.feedback, "fork")
+                else copy.deepcopy(session.feedback)
+            )
+            candidate.record(
                 body.proposal_id,
                 body.outcome,
                 body.sequence,
@@ -722,7 +1368,34 @@ class CopilotService:
             )
         except (ValueError, KeyError, TypeError, IndexError) as error:
             raise GatewayError(422, "invalid_feedback", str(error)) from error
-        return {"recorded": True, "proposal_id": body.proposal_id, "outcome": body.outcome}
+        event = self._append(
+            body.document_id,
+            kind="feedback",
+            request=proposal["request"],
+            sequence=body.sequence,
+            actor=body.origin,
+            prediction_event_hash=proposal["event_hash"],
+            prepared_event_hash=proposal["prepared_event_hash"],
+            feedback=body.model_dump(),
+            ledger_record=candidate._records[-1],
+            preference_qualification="unqualified_observation",
+        )
+        session.feedback = candidate
+        return self._feedback_receipt(event)
+
+    @staticmethod
+    def _feedback_receipt(event):
+        feedback = event["feedback"]
+        return {
+            "recorded": True,
+            "persisted": True,
+            "document_id": event["document_id"],
+            "event_id": feedback["event_id"],
+            "proposal_id": feedback["proposal_id"],
+            "outcome": feedback["outcome"],
+            "event_hash": event["event_hash"],
+            "seq": event["seq"],
+        }
 
 
 def create_copilot_router(auth_dependency):
@@ -759,6 +1432,31 @@ def create_copilot_router(auth_dependency):
             return request.app.state.copilot.feedback(body)
         except GatewayError as error:
             raise translate(error) from error
+
+    @router.get("/feedback/sessions")
+    async def feedback_sessions(request: Request):
+        return {"sessions": request.app.state.copilot.evidence.sessions()}
+
+    @router.get("/feedback/export")
+    async def export_feedback(document_id: str, request: Request):
+        store = request.app.state.copilot.evidence
+        try:
+            records, raw = store.read(document_id)
+        except EvidenceError as error:
+            raise HTTPException(
+                503, detail={"code": "feedback_storage", "message": str(error)}
+            ) from error
+        if not records:
+            raise HTTPException(404, detail="No saved copilot session.")
+        return Response(
+            raw,
+            media_type="application/x-ndjson",
+            headers={
+                "Content-Disposition": f'attachment; filename="{store.path(document_id).name}"',
+                "Cache-Control": "no-store",
+                "X-Copilot-Evidence-Head": records[-1]["event_hash"],
+            },
+        )
 
     @router.post("/cancel")
     async def cancel(body: RequestIdentity, request: Request):

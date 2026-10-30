@@ -17,6 +17,7 @@ from app.copilot import (
     Completion,
     CopilotService,
     DisabledAdapter,
+    FeedbackRequest,
     GatewayError,
     LocalConfig,
     LocalLlamaAdapter,
@@ -26,6 +27,7 @@ from app.copilot import (
     create_copilot_router,
     inference_timings,
 )
+from app.copilot_store import EvidenceError, evidence_hash
 
 
 def document(language="en"):
@@ -106,10 +108,17 @@ class FakeAdapter:
             self.finished = True
 
 
-class CopilotApiTests(unittest.TestCase):
+class IsolatedEvidence:
+    def make_service(self, adapter):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        return CopilotService(adapter, feedback_directory=directory.name)
+
+
+class CopilotApiTests(IsolatedEvidence, unittest.TestCase):
     def setUp(self):
         self.adapter = FakeAdapter()
-        self.service = CopilotService(self.adapter)
+        self.service = self.make_service(self.adapter)
         app = FastAPI()
         app.state.copilot = self.service
 
@@ -143,8 +152,22 @@ class CopilotApiTests(unittest.TestCase):
             },
         )
 
+    def restart(self):
+        self.service = CopilotService(self.adapter, self.service.evidence.directory)
+        self.client.app.state.copilot = self.service
+
+    def exported(self):
+        response = self.client.get(
+            "/copilot/feedback/export", params={"document_id": "doc"}, headers=self.headers
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.headers["cache-control"], "no-store")
+        return [json.loads(line) for line in response.content.splitlines()]
+
     def test_all_routes_require_existing_authentication(self):
         self.assertEqual(self.client.get("/copilot/health").status_code, 401)
+        for endpoint in ("sessions", "export"):
+            self.assertEqual(self.client.get(f"/copilot/feedback/{endpoint}").status_code, 401)
         for endpoint in ("predict", "feedback", "cancel"):
             self.assertEqual(self.client.post(f"/copilot/{endpoint}", json={}).status_code, 401)
 
@@ -181,6 +204,26 @@ class CopilotApiTests(unittest.TestCase):
         self.assertEqual(messages, contract().canonical_messages(snapshot))
         self.assertNotIn("task_brief", snapshot.model_dump())
         self.assertEqual(body["context"]["policy"]["input_tokens"], 3584)
+        events = self.exported()
+        self.assertEqual(
+            [event["kind"] for event in events],
+            [
+                "prediction_requested",
+                "prediction_prepared",
+                "prediction_generated",
+                "prediction_completed",
+            ],
+        )
+        self.assertEqual(events[0]["input_request"], prediction_request().model_dump())
+        self.assertEqual(events[0]["actor"], "unclassified")
+        self.assertEqual(events[1]["messages"], messages)
+        self.assertEqual(events[1]["messages_hash"], evidence_hash(messages))
+        self.assertEqual(events[1]["bundle"]["document_hash"], body["document_hash"])
+        self.assertEqual(events[1]["model"], self.adapter.model)
+        self.assertEqual(events[2]["completion"]["text"], self.adapter.text)
+        self.assertEqual(events[-1]["event_hash"], body["evidence"]["event_hash"])
+        self.assertEqual(events[-1]["ledger_record"]["prediction"], CORRECTION)
+        self.assertNotIn("Bearer", json.dumps(events))
 
     def test_duplicate_requests_and_regressing_identity_fail(self):
         self.assertEqual(self.predict().status_code, 200)
@@ -248,6 +291,7 @@ class CopilotApiTests(unittest.TestCase):
         self.assertEqual(self.feedback(proposal, "shown", 0).status_code, 422)
         self.assertEqual(self.feedback(proposal, "shown", 1).status_code, 200)
         self.assertEqual(self.feedback(proposal, "dismissed", 2).status_code, 200)
+        self.restart()
         old = prediction_request(sequence=0)
         old.request.request_id = "old-sequence"
         self.assertEqual(self.predict(old).json()["detail"]["code"], "stale")
@@ -279,6 +323,7 @@ class CopilotApiTests(unittest.TestCase):
         self.assertEqual(
             self.feedback(proposal, "accepted", 2, transition=transition).status_code, 200
         )
+        self.restart()
         request = prediction_request(document=result["result_document"], sequence=3)
         request.request.request_id = "missing-history"
         self.assertEqual(self.predict(request).status_code, 422)
@@ -295,6 +340,130 @@ class CopilotApiTests(unittest.TestCase):
         request = prediction_request(sequence=5, history=[transition, undo])
         request.request.request_id = "after-undo"
         self.assertEqual(self.predict(request).json()["status"], "suppressed")
+        events = self.exported()
+        accepted = next(
+            e for e in events if e["kind"] == "feedback" and e["feedback"]["outcome"] == "accepted"
+        )
+        undone = next(
+            e for e in events if e["kind"] == "feedback" and e["feedback"]["outcome"] == "undone"
+        )
+        self.assertEqual(accepted["feedback"]["transition"], transition)
+        self.assertEqual(undone["feedback"]["transition"], undo)
+        self.assertEqual(accepted["prepared_event_hash"], undone["prepared_event_hash"])
+        self.assertNotEqual(accepted["process_id"], undone["process_id"])
+        self.assertLess(accepted["seq"], undone["seq"])
+
+    def test_feedback_retry_is_idempotent_and_expiry_is_not_a_negative_preference(self):
+        body = prediction_request(origin="ai_computer_use", observed_at="2026-10-11T01:00:00Z")
+        result = self.predict(body).json()
+        args = {
+            "event_id": "shown-1",
+            "request": body.request.model_dump(),
+            "observed_at": "2026-10-11T01:00:02Z",
+            "revision": 0,
+            "interaction_epoch": 0,
+        }
+        first = self.feedback(result["proposal_id"], "shown", 1, **args)
+        self.assertTrue(first.json()["persisted"])
+        self.restart()
+        count = len(self.exported())
+        retry = self.feedback(result["proposal_id"], "shown", 1, **args)
+        self.assertEqual(retry.json(), first.json())
+        self.assertEqual(len(self.exported()), count)
+        conflict = self.feedback(result["proposal_id"], "expired", 2, **args)
+        self.assertEqual(conflict.json()["detail"]["code"], "feedback_conflict")
+        self.assertEqual(self.feedback(result["proposal_id"], "expired", 2).status_code, 200)
+        self.restart()
+        body.request.request_id = "after-expiry"
+        body.sequence = 3
+        self.assertEqual(self.predict(body).json()["status"], "proposal")
+        snapshot = json.loads(self.adapter.calls[-1][1]["content"])
+        self.assertEqual([item["outcome"] for item in snapshot["recent_feedback"]], ["expired"])
+        exported = self.exported()
+        self.assertEqual(exported[0]["actor"], "ai_computer_use")
+        observed = [e for e in exported if e["kind"] == "feedback"]
+        self.assertEqual([e["feedback"]["outcome"] for e in observed], ["shown", "expired"])
+        self.assertEqual(observed[0]["feedback"]["observed_at"], args["observed_at"])
+        self.assertTrue(
+            all(e["preference_qualification"] == "unqualified_observation" for e in observed)
+        )
+
+    def test_failed_write_never_acknowledges_or_updates_feedback(self):
+        result = self.predict().json()
+        before = self.service.sessions["doc"].feedback.dump()
+        with patch.object(self.service.evidence, "append", side_effect=EvidenceError("disk full")):
+            response = self.feedback(result["proposal_id"], "shown", 1)
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["detail"]["code"], "feedback_storage")
+        self.assertNotIn("recorded", response.json())
+        self.assertEqual(self.service.sessions["doc"].feedback.dump(), before)
+        self.assertFalse(any(e["kind"] == "feedback" for e in self.exported()))
+        self.assertEqual(self.feedback(result["proposal_id"], "shown", 1).status_code, 503)
+        self.restart()
+        self.assertEqual(self.feedback(result["proposal_id"], "shown", 1).status_code, 200)
+
+    def test_failed_fsync_is_not_success_even_if_a_complete_record_survives_restart(self):
+        result = self.predict().json()
+        before = self.service.sessions["doc"].feedback.dump()
+        with patch("app.copilot_store.os.fsync", side_effect=OSError("sync failed")):
+            response = self.feedback(result["proposal_id"], "shown", 1, event_id="retry-after-sync")
+        self.assertEqual(response.status_code, 503)
+        self.assertNotIn("recorded", response.json())
+        self.assertEqual(self.service.sessions["doc"].feedback.dump(), before)
+        self.restart()
+        with patch("app.copilot_store.os.fsync", side_effect=OSError("still failing")):
+            retry = self.feedback(result["proposal_id"], "shown", 1, event_id="retry-after-sync")
+        self.assertEqual(retry.status_code, 503)
+        self.restart()
+        retry = self.feedback(result["proposal_id"], "shown", 1, event_id="retry-after-sync")
+        self.assertTrue(retry.json()["persisted"])
+        self.assertEqual(
+            len([event for event in self.exported() if event["kind"] == "feedback"]), 1
+        )
+
+    def test_cached_writer_rechecks_external_changes_and_preserves_a_corrupt_prefix(self):
+        result = self.predict().json()
+        other = CopilotService(self.adapter, self.service.evidence.directory)
+        other._session("doc")
+        self.assertEqual(self.feedback(result["proposal_id"], "shown", 1).status_code, 200)
+        with self.assertRaises(GatewayError) as error:
+            other.feedback(
+                FeedbackRequest(
+                    document_id="doc",
+                    proposal_id=result["proposal_id"],
+                    outcome="shown",
+                    sequence=1,
+                )
+            )
+        self.assertEqual(error.exception.code, "feedback_storage")
+        path = self.service.evidence.path("doc")
+        changed = path.read_bytes().replace(b"requier", b"requiez", 1)
+        path.write_bytes(changed)
+        response = self.feedback(result["proposal_id"], "expired", 2)
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(path.read_bytes(), changed)
+
+    def test_restart_preserves_unfinished_request_and_rejects_corrupt_tail(self):
+        self.predict()
+        path = self.service.evidence.path("doc")
+        prefix = b"".join(path.read_bytes().splitlines(keepends=True)[:2])
+        path.write_bytes(prefix)
+        self.restart()
+        summary = self.client.get("/copilot/feedback/sessions", headers=self.headers).json()[
+            "sessions"
+        ][0]
+        self.assertEqual(summary["unfinished_requests"], ["r1"])
+        self.assertEqual(summary["proposal_outcomes"], {})
+        self.assertEqual(self.predict().json()["detail"]["code"], "duplicate")
+        self.assertEqual(self.service.sessions["doc"].feedback.dump()["records"], [])
+        path.write_bytes(prefix + b'{"kind":')
+        self.restart()
+        response = self.client.get(
+            "/copilot/feedback/export", params={"document_id": "doc"}, headers=self.headers
+        )
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(self.predict().json()["detail"]["code"], "feedback_storage")
+        self.assertEqual(path.read_bytes(), prefix + b'{"kind":')
 
     def test_privileged_snapshot_fields_and_bad_selection_are_rejected(self):
         body = prediction_request().model_dump()
@@ -306,11 +475,11 @@ class CopilotApiTests(unittest.TestCase):
         self.assertEqual(self.predict(request).status_code, 422)
 
 
-class AllActionCopilotTests(unittest.IsolatedAsyncioTestCase):
+class AllActionCopilotTests(IsolatedEvidence, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.adapter = FakeAdapter()
         self.adapter.contract_version = "passive-nep-actions-v1"
-        self.service = CopilotService(self.adapter)
+        self.service = self.make_service(self.adapter)
         self.module = contract(self.adapter.contract_version)
 
     def gap_document(self):
@@ -331,7 +500,7 @@ class AllActionCopilotTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(health["gated_actions"], [])
         for action in ("delete_span", "trim_silence", "remove_silence"):
             with self.subTest(action=action):
-                service = CopilotService(self.adapter)
+                service = self.make_service(self.adapter)
                 before = document() if action == "delete_span" else self.gap_document()
                 prediction = {"action": action, "target": [1]}
                 if action == "trim_silence":
@@ -348,8 +517,20 @@ class AllActionCopilotTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(saved.items[1].boundary_status, "unverified")
                 if action != "delete_span":
                     self.assertEqual(saved.items[1].audio_class, "unknown")
-                ledger = service.sessions["doc"].feedback
-                ledger.record(result["proposal_id"], "shown", 1, origin="human")
+
+                def observe(outcome, sequence, transition=None):
+                    return service.feedback(
+                        FeedbackRequest(
+                            document_id="doc",
+                            proposal_id=result["proposal_id"],
+                            outcome=outcome,
+                            sequence=sequence,
+                            origin="human",
+                            transition=transition,
+                        )
+                    )
+
+                self.assertTrue(observe("shown", 1)["persisted"])
                 transition = self.module.committed_transition(
                     before,
                     result["result_document"],
@@ -358,13 +539,7 @@ class AllActionCopilotTests(unittest.IsolatedAsyncioTestCase):
                     origin="human",
                     transaction_id="accepted-cut",
                 )
-                ledger.record(
-                    result["proposal_id"],
-                    "accepted",
-                    2,
-                    origin="human",
-                    transition=transition,
-                )
+                self.assertTrue(observe("accepted", 2, transition)["persisted"])
                 undo = self.module.committed_transition(
                     result["result_document"],
                     before,
@@ -374,7 +549,8 @@ class AllActionCopilotTests(unittest.IsolatedAsyncioTestCase):
                     transaction_id="undo-cut",
                     undo_of="accepted-cut",
                 )
-                ledger.record(result["proposal_id"], "undone", 3, origin="human", transition=undo)
+                self.assertTrue(observe("undone", 3, undo)["persisted"])
+                service = CopilotService(self.adapter, service.evidence.directory)
                 request = prediction_request(
                     document=before, sequence=4, history=[transition, undo]
                 )
@@ -400,9 +576,9 @@ class AllActionCopilotTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(error.exception.code, "invalid")
 
 
-class CopilotLifecycleTests(unittest.IsolatedAsyncioTestCase):
+class CopilotLifecycleTests(IsolatedEvidence, unittest.IsolatedAsyncioTestCase):
     async def test_synchronous_validation_cannot_publish_after_deadline(self):
-        service = CopilotService(FakeAdapter())
+        service = self.make_service(FakeAdapter())
         original = contract().PassivePredictionSession.validate
 
         def slow_validation(*args, **kwargs):
@@ -415,10 +591,30 @@ class CopilotLifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(error.exception.code, "deadline")
         self.assertEqual(service.sessions["doc"].feedback.dump()["records"], [])
 
+    async def test_durable_write_crossing_deadline_is_failed_and_not_restored_as_a_proposal(self):
+        service = self.make_service(FakeAdapter())
+        append = service.evidence.append
+
+        def slow_append(document_id, fields, expected_head):
+            event = append(document_id, fields, expected_head)
+            if fields["kind"] == "prediction_completed":
+                time.sleep(0.12)
+            return event
+
+        with patch.object(service.evidence, "append", side_effect=slow_append):
+            with self.assertRaises(GatewayError) as error:
+                await service.predict(prediction_request(deadline_ms=100))
+        self.assertEqual(error.exception.code, "deadline")
+        restored = CopilotService(FakeAdapter(), service.evidence.directory)
+        self.assertEqual(restored._session("doc").feedback.dump()["records"], [])
+        summary = restored.evidence.sessions()[0]
+        self.assertEqual(summary["failed_requests"], {"r1": "deadline"})
+        self.assertEqual(set(summary["proposal_outcomes"].values()), {"request_failed"})
+
     async def test_one_active_request_cancel_identity_and_recovery(self):
         adapter = FakeAdapter()
         adapter.block = True
-        service = CopilotService(adapter)
+        service = self.make_service(adapter)
         body = prediction_request()
         task = asyncio.create_task(service.predict(body))
         await asyncio.wait_for(adapter.started.wait(), timeout=2)
@@ -441,7 +637,7 @@ class CopilotLifecycleTests(unittest.IsolatedAsyncioTestCase):
         for disconnected in (False, True):
             adapter = FakeAdapter()
             adapter.block = True
-            service = CopilotService(adapter)
+            service = self.make_service(adapter)
 
             async def check_disconnect():
                 return disconnected and adapter.started.is_set()
@@ -454,7 +650,7 @@ class CopilotLifecycleTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(service.sessions["doc"].feedback.dump()["records"], [])
 
 
-class LocalAdapterTests(unittest.TestCase):
+class LocalAdapterTests(IsolatedEvidence, unittest.TestCase):
     def setUp(self):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
@@ -575,7 +771,7 @@ class LocalAdapterTests(unittest.TestCase):
             )
 
         adapter.generate = generate
-        result = asyncio.run(CopilotService(adapter).predict(prediction_request()))
+        result = asyncio.run(self.make_service(adapter).predict(prediction_request()))
         self.assertEqual(result["timings"]["runtime_cached_tokens"], 9)
         self.assertEqual(result["timings"]["runtime_prompt_ms"], 4.0)
         self.assertGreaterEqual(result["timings"]["total_ms"], 0)

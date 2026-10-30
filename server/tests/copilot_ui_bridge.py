@@ -2,6 +2,7 @@
 
 import json
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -51,7 +52,8 @@ class FixtureAdapter:
 def main():
     adapter = FixtureAdapter()
     app = FastAPI()
-    app.state.copilot = CopilotService(adapter)
+    directory = tempfile.TemporaryDirectory()
+    app.state.copilot = CopilotService(adapter, feedback_directory=directory.name)
     app.include_router(create_copilot_router(lambda: None))
     with TestClient(app) as client:
         for line in sys.stdin:
